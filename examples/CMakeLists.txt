@@ -1,0 +1,1 @@
+add_executable(hellow_world hellow_world/main.cpp)
