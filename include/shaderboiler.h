@@ -37,13 +37,7 @@ namespace sb
 			dvec,
 			vec,
 			mat,
-			mat2x,
-			mat3x,
-			mat4x,
 			dmat,
-			dmat2x,
-			dmat3x,
-			dmat4x,
 		};
 
 		enum OpType
@@ -91,15 +85,13 @@ namespace sb
 		int id;
 		DataType datatype;
 		DataSize datasize;
-		Data x;
-		Data y;
-		Data z;
-		Data w;
+		DataSize datasize_secondary;
+		Data data[16];
 		OpType optype;
 		std::vector<nodePtr> childs;
 	};
 
-	template<node::DataType T, node::DataSize S>
+	template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
 	class basevar
 	{
 	public:
@@ -108,6 +100,7 @@ namespace sb
 			src = nodePtr(new node());
 			src->datatype = T;
 			src->datasize = S;
+			src->datasize_secondary = S2;
 			if (t == in)
 			{
 				src->optype = node::input;
@@ -134,6 +127,79 @@ namespace sb
 
 // All this could be templates, not macroses. But sadly, class template arguments deduction was introduced only in C++17. To have implicit type conversion, argument deduction is needed.
 // Once C++17 is supported by all major compilers, this should be rewritten
+
+#define REPEAT_WITH_ID_AND_COMMA(X, C) REPEAT_IC##C(X)
+#define REPEAT_IC1(X) X##0
+#define REPEAT_IC2(X) REPEAT_IC1(X), X##1
+#define REPEAT_IC3(X) REPEAT_IC2(X), X##2
+#define REPEAT_IC4(X) REPEAT_IC3(X), X##3
+#define REPEAT_IC5(X) REPEAT_IC4(X), X##4
+#define REPEAT_IC6(X) REPEAT_IC5(X), X##5
+#define REPEAT_IC7(X) REPEAT_IC6(X), X##6
+#define REPEAT_IC8(X) REPEAT_IC7(X), X##7
+#define REPEAT_IC9(X) REPEAT_IC8(X), X##8
+#define REPEAT_IC10(X) REPEAT_IC9(X), X##9
+#define REPEAT_IC11(X) REPEAT_IC10(X), X##10
+#define REPEAT_IC12(X) REPEAT_IC11(X), X##11
+#define REPEAT_IC13(X) REPEAT_IC12(X), X##12
+#define REPEAT_IC14(X) REPEAT_IC13(X), X##13
+#define REPEAT_IC15(X) REPEAT_IC14(X), X##14
+#define REPEAT_IC16(X) REPEAT_IC15(X), X##15
+
+#define REPEAT_ASSIGNMENT_WITH_ID(X1, X2, X3, C) REPEAT_AWID##C(X1, X2, X3)
+#define REPEAT_AWID1(X1, X2, X3) X1##0##X2 = X3##0;
+#define REPEAT_AWID2(X1, X2, X3) REPEAT_AWID1(X1, X2, X3)  X1##1##X2 = X3##1;
+#define REPEAT_AWID3(X1, X2, X3) REPEAT_AWID2(X1, X2, X3)  X1##2##X2 = X3##2;
+#define REPEAT_AWID4(X1, X2, X3) REPEAT_AWID3(X1, X2, X3)  X1##3##X2 = X3##3;
+#define REPEAT_AWID5(X1, X2, X3) REPEAT_AWID4(X1, X2, X3)  X1##4##X2 = X3##4;
+#define REPEAT_AWID6(X1, X2, X3) REPEAT_AWID5(X1, X2, X3)  X1##5##X2 = X3##5;
+#define REPEAT_AWID7(X1, X2, X3) REPEAT_AWID6(X1, X2, X3)  X1##6##X2 = X3##6;
+#define REPEAT_AWID8(X1, X2, X3) REPEAT_AWID7(X1, X2, X3)  X1##7##X2 = X3##7;
+#define REPEAT_AWID9(X1, X2, X3) REPEAT_AWID8(X1, X2, X3)  X1##8##X2 = X3##8;
+#define REPEAT_AWID10(X1, X2, X3) REPEAT_AWID9(X1, X2, X3)  X1##9##X2 = X3##9;
+#define REPEAT_AWID11(X1, X2, X3) REPEAT_AWID10(X1, X2, X3)  X1##10##X2 = X3##10;
+#define REPEAT_AWID12(X1, X2, X3) REPEAT_AWID11(X1, X2, X3)  X1##11##X2 = X3##11;
+#define REPEAT_AWID13(X1, X2, X3) REPEAT_AWID12(X1, X2, X3)  X1##12##X2 = X3##12;
+#define REPEAT_AWID14(X1, X2, X3) REPEAT_AWID13(X1, X2, X3)  X1##13##X2 = X3##13;
+#define REPEAT_AWID15(X1, X2, X3) REPEAT_AWID14(X1, X2, X3)  X1##14##X2 = X3##14;
+#define REPEAT_AWID16(X1, X2, X3) REPEAT_AWID15(X1, X2, X3)  X1##15##X2 = X3##15;
+
+#define REPEAT_ASSIGNMENT(X1, X2, X3, C) REPEAT_A##C(X1, X2, X3)
+#define REPEAT_A1(X1, X2, X3) X1##0##X2 = X3;
+#define REPEAT_A2(X1, X2, X3) REPEAT_A1(X1, X2, X3)  X1##1##X2 = X3;
+#define REPEAT_A3(X1, X2, X3) REPEAT_A2(X1, X2, X3)  X1##2##X2 = X3;
+#define REPEAT_A4(X1, X2, X3) REPEAT_A3(X1, X2, X3)  X1##3##X2 = X3;
+#define REPEAT_A5(X1, X2, X3) REPEAT_A4(X1, X2, X3)  X1##4##X2 = X3;
+#define REPEAT_A6(X1, X2, X3) REPEAT_A5(X1, X2, X3)  X1##5##X2 = X3;
+#define REPEAT_A7(X1, X2, X3) REPEAT_A6(X1, X2, X3)  X1##6##X2 = X3;
+#define REPEAT_A8(X1, X2, X3) REPEAT_A7(X1, X2, X3)  X1##7##X2 = X3;
+#define REPEAT_A9(X1, X2, X3) REPEAT_A8(X1, X2, X3)  X1##8##X2 = X3;
+#define REPEAT_A10(X1, X2, X3) REPEAT_A9(X1, X2, X3)  X1##9##X2 = X3;
+#define REPEAT_A11(X1, X2, X3) REPEAT_A10(X1, X2, X3)  X1##10##X2 = X3;
+#define REPEAT_A12(X1, X2, X3) REPEAT_A11(X1, X2, X3)  X1##11##X2 = X3;
+#define REPEAT_A13(X1, X2, X3) REPEAT_A12(X1, X2, X3)  X1##12##X2 = X3;
+#define REPEAT_A14(X1, X2, X3) REPEAT_A13(X1, X2, X3)  X1##13##X2 = X3;
+#define REPEAT_A15(X1, X2, X3) REPEAT_A14(X1, X2, X3)  X1##14##X2 = X3;
+#define REPEAT_A16(X1, X2, X3) REPEAT_A15(X1, X2, X3)  X1##15##X2 = X3;
+	
+#define MULL(X, Y) MULL##X##Y
+#define MULL11 1
+#define MULL12 2
+#define MULL13 3
+#define MULL14 4
+#define MULL21 2
+#define MULL22 4
+#define MULL23 6
+#define MULL24 8
+#define MULL31 3
+#define MULL32 6
+#define MULL33 9
+#define MULL34 12
+#define MULL41 4
+#define MULL42 8
+#define MULL43 12
+#define MULL44 16
+	
 #define binop(T1, T2, T3, X, E)\
 	T3 operator X (const T1& a, const T2& b) { \
 		T3 result(Type::variable); \
@@ -157,65 +223,69 @@ namespace sb
 	binop(T1, T2, T3, &, and); \
 	binop(T1, T2, T3, |, or); \
 	binop(T1, T2, T3, ^, xor);
-	
-#define class_def_size1(T) \
-	class T##1: public basevar<node::DataType::##T, node::DataSize(1)>{ \
+
+#define class_vec_def_size(T, S) \
+	class T##S: public basevar<node::DataType::##T, node::DataSize(S)>{ \
 	public: \
-		T##1(Type t) : basevar(t) {}; \
-		T##1(plane_types::##T f) : basevar(Type::variable) { src->x.d_##T = f; src->optype = node::OpType::o##T; }; \
+		T##S(Type t) : basevar(t) {}; \
+		T##S(REPEAT_WITH_ID_AND_COMMA(plane_types::##T f, S)) : basevar(Type::variable) { REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##T, f, S); src->optype = node::OpType::o##T; }; \
 	};
 
-#define class_def_size2(T) \
-	class T##2: public basevar<node::DataType::##T, node::DataSize(2)>{ \
+//explicit T##S(T##1 f) : basevar(Type::variable) { REPEAT_ASSIGNMENT(src->data[, ].d_##T, f->src->data[0], S); src->optype = node::OpType::o##T; }; \
+
+#define class_mat_def_(T, PT, M, N, MbyN) \
+	class T##M##x##N: public basevar<node::DataType::##T, node::DataSize(M), node::DataSize(N)>{ \
 	public: \
-		T##2(Type t) : basevar(t) {}; \
-		T##2(plane_types::##T f1, plane_types::##T f2) : basevar(Type::variable) { src->x.d_##T = f1; src->optype = node::OpType::o##T; }; \
+		T##M##x##N(Type t) : basevar(t) {}; \
+		T##M##x##N(plane_types::##PT f) : basevar(Type::variable) { REPEAT_ASSIGNMENT(src->data[(N + 1) *, ].d_##PT, f, M); src->optype = node::OpType::o##PT; }; \
+		T##M##x##N(REPEAT_WITH_ID_AND_COMMA(plane_types::##PT f, MbyN)) : basevar(Type::variable) { REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##PT, f, MbyN); src->optype = node::OpType::o##PT; }; \
 	};
+#define class_mat_def(T, PT, M, N) class_mat_def_(T, PT, M, N, MULL(M, N))
 
-#define class_def_size3(T) \
-	class T##3: public basevar<node::DataType::##T, node::DataSize(3)>{ \
-	public: \
-		T##3(Type t) : basevar(t) {}; \
-		T##3(plane_types::##T f1, plane_types::##T f2, plane_types::##T f3) : basevar(Type::variable) { src->x.d_##T = f1; src->optype = node::OpType::o##T; }; \
-	}; 
+#define class_vec_def(T) \
+	class_vec_def_size(T, 1) \
+	class_vec_def_size(T, 2) \
+	class_vec_def_size(T, 3) \
+	class_vec_def_size(T, 4)
 
-#define class_def_size4(T) \
-	class T##4: public basevar<node::DataType::##T, node::DataSize(4)>{ \
-	public: \
-		T##4(Type t) : basevar(t) {}; \
-		T##4(plane_types::##T f1, plane_types::##T f2, plane_types::##T f3, plane_types::##T f4) : basevar(Type::variable) { src->x.d_##T = f1; src->optype = node::OpType::o##T; }; \
-	};
+	class_vec_def(vec);
+	class_vec_def(ivec);
+	class_vec_def(uvec);
+	class_vec_def(bvec);
 
-#define class_def(T) \
-	class_def_size1(T) \
-	class_def_size2(T) \
-	class_def_size3(T) \
-	class_def_size4(T)
+	class_mat_def(mat, vec, 2, 2);
+	class_mat_def(mat, vec, 3, 3);
+	class_mat_def(mat, vec, 4, 4);
 
-	class_def(vec);
-	class_def(ivec);
-	class_def(uvec);
-	class_def(bvec);
+	typedef mat2x2 mat2;
+	typedef mat3x3 mat3;
+	typedef mat4x4 mat4;
 
-#define op_ariphm_allTypes(S1, S2, S3) \
+#define op_ariphm_allvecTypes(S1, S2, S3) \
 	op_ariphm(vec##S1, vec##S2, vec##S3) \
 	op_ariphm(bvec##S1, bvec##S2, bvec##S3) \
 	op_ariphm(ivec##S1, ivec##S2, ivec##S3) \
 	op_ariphm(uvec##S1, uvec##S2, uvec##S3)
+	
+	op_ariphm_allvecTypes(1, 1, 1);
+	op_ariphm_allvecTypes(2, 2, 2);
+	op_ariphm_allvecTypes(3, 3, 3);
+	op_ariphm_allvecTypes(4, 4, 4);
 
-	op_ariphm_allTypes(1, 1, 1);
-	op_ariphm_allTypes(2, 2, 2);
-	op_ariphm_allTypes(3, 3, 3);
-	op_ariphm_allTypes(4, 4, 4);
+	// One operand is a scalar, and the other is a vector or matrix. In this case, the scalar operation is 
+	// applied independently to each component of the vector or matrix, resulting in the same size vector
+	// or matrix
+	op_ariphm_allvecTypes(1, 2, 2);
+	op_ariphm_allvecTypes(1, 3, 3);
+	op_ariphm_allvecTypes(1, 4, 4);
 
-	op_ariphm_allTypes(1, 2, 2);
-	op_ariphm_allTypes(1, 3, 3);
-	op_ariphm_allTypes(1, 4, 4);
+	op_ariphm_allvecTypes(2, 1, 2);
+	op_ariphm_allvecTypes(3, 1, 2);
+	op_ariphm_allvecTypes(4, 1, 3);
 
-	op_ariphm_allTypes(2, 1, 2);
-	op_ariphm_allTypes(3, 1, 2);
-	op_ariphm_allTypes(4, 1, 3);
-
+	//op_ariphm(mat2, mat2, mat2);
+	//op_ariphm(mat2, mat2, mat2);
+	
 	binop(bvec1, bvec1, bvec1, &&, land);
 	binop(bvec1, bvec1, bvec1, ||, lor);
 	//binop(bvec1, bvec1, bvec1, ^^, lxor); // operator not supported by c++
@@ -251,22 +321,22 @@ namespace sb
 			{
 			case node::floatConstant:
 			{
-				ss << n->x.d_vec;
+				ss << n->data[0].d_vec;
 			}
 			break;
 			case node::integerConstant:
 			{
-				ss << n->x.d_ivec;
+				ss << n->data[0].d_ivec;
 			}
 			break;
 			case node::unsignedIntegerConstant:
 			{
-				ss << n->x.d_uvec << "u";
+				ss << n->data[0].d_uvec << "u";
 			}
 			break;
 			case node::booleanConstant:
 			{
-				if (n->x.d_bvec)
+				if (n->data[0].d_bvec)
 				{
 					ss << "true";
 				}
@@ -412,6 +482,15 @@ namespace sb
 				}
 			}
 
+			std::string size_secondary;
+			switch (n->datasize_secondary)
+			{
+			case node::DataSize::size1: size_secondary = "1"; break;
+			case node::DataSize::size2: size_secondary = "2"; break;
+			case node::DataSize::size3: size_secondary = "3"; break;
+			case node::DataSize::size4: size_secondary = "4"; break;
+			}
+
 			switch (n->datatype)
 			{
 			case node::DataType::bvec: return "bvec" + size;
@@ -420,14 +499,8 @@ namespace sb
 			case node::DataType::dvec: return "dvec" + size;
 			case node::DataType::vec: return "vec" + size;
 
-			case node::DataType::mat: return "mat" + size;
-			case node::DataType::mat2x: return "mat2x" + size;
-			case node::DataType::mat3x: return "mat3x" + size;
-			case node::DataType::mat4x: return "mat4x" + size;
-			case node::DataType::dmat: return "dmat" + size;
-			case node::DataType::dmat2x: return "dmat2x" + size;
-			case node::DataType::dmat3x: return "dmat3x" + size;
-			case node::DataType::dmat4x: return "dmat4x" + size;
+			case node::DataType::mat: return "mat" + size + "x" + size_secondary;
+			case node::DataType::dmat: return "dmat" + size + "x" + size_secondary;
 			}
 			return "void";
 		}
