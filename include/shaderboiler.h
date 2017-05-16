@@ -200,7 +200,14 @@ namespace sb
 #define MULL42 8
 #define MULL43 12
 #define MULL44 16
-	
+
+	template<typename T>
+	nodePtr GetPtr(T* x)
+	{
+		return x->src;
+	}
+
+
 #define binop(T1, T2, T3, X, E)\
 	T3 operator X (const T1& a, const T2& b) { \
 		T3 result(Type::variable); \
@@ -225,6 +232,20 @@ namespace sb
 	binop(T1, T2, T3, |, or); \
 	binop(T1, T2, T3, ^, xor);
 
+#define type_cast(T, S) type_cast_to_##T(S)
+
+#define type_cast_to_vec(S) type_cast_from(vec, uvec, S) type_cast_from(vec, ivec, S) type_cast_from(vec, bvec, S)
+#define type_cast_to_uvec(S) type_cast_from(uvec, vec, S) type_cast_from(uvec, ivec, S) type_cast_from(uvec, bvec, S)
+#define type_cast_to_ivec(S) type_cast_from(ivec, uvec, S) type_cast_from(ivec, vec, S) type_cast_from(ivec, bvec, S)
+#define type_cast_to_bvec(S) type_cast_from(bvec, uvec, S) type_cast_from(bvec, ivec, S) type_cast_from(bvec, vec, S)
+
+#define type_cast_from(T, T_from, S) \
+		/* Casts from type T_from to T, element-wise */ \
+		explicit T##S(const T_from##S& f) : basevar(Type::variable) { \
+			src->optype = node::cast; \
+			src->childs.push_back(GetPtr(&f)); \
+		};
+
 #define cast_from_scalar(T, S) \
 		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
 		explicit T##S(T##1 f) : basevar(Type::variable) { \
@@ -248,12 +269,6 @@ namespace sb
 			src->childs.push_back(v2.src); \
 			src->childs.push_back(v3.src); \
 		};
-
-	template<typename T>
-	nodePtr GetPtr(T* x)
-	{
-		return x->src;
-	}
 
 #define drop_cast(T, S, V) \
 		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
@@ -288,6 +303,7 @@ namespace sb
 		drop_cast(T, 1, 4); \
 		drop_cast(T, 1, 3); \
 		drop_cast(T, 1, 2); \
+		type_cast(T, 1); \
 		/* Constructor from one argument of POD type*/ \
 		T##1(plane_types::##T f0) : basevar(Type::variable) { src->data[0].d_##T = f0; src->optype = node::OpType::o##T; }; \
 	};
@@ -302,6 +318,7 @@ namespace sb
 		drop_cast(T, 2, 4); \
 		drop_cast(T, 2, 3); \
 		main_constructor(T, 2); \
+		type_cast(T, 2); \
 		cast_from_const_literal_scalar(T, 2); \
 	};
 
@@ -315,6 +332,7 @@ namespace sb
 		cast_from_vec_and_vec(T, 3, 2, 1); \
 		cast_from_vec_and_vec(T, 3, 1, 2); \
 		drop_cast(T, 3, 4); \
+		type_cast(T, 3); \
 		main_constructor(T, 3); \
 		cast_from_const_literal_scalar(T, 3); \
 	};
@@ -332,6 +350,7 @@ namespace sb
 		cast_from_vec_and_vec_and_vec(T, 4, 1, 1, 2); \
 		cast_from_vec_and_vec_and_vec(T, 4, 1, 2, 1); \
 		cast_from_vec_and_vec_and_vec(T, 4, 2, 1, 1); \
+		type_cast(T, 4); \
 		main_constructor(T, 4); \
 		cast_from_const_literal_scalar(T, 4); \
 	};
