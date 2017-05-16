@@ -67,6 +67,7 @@ namespace sb
 			predec,
 			postinc,
 			postdec,
+			cast,
 
 			ovec = floatConstant,
 			oivec = integerConstant,
@@ -224,14 +225,70 @@ namespace sb
 	binop(T1, T2, T3, |, or); \
 	binop(T1, T2, T3, ^, xor);
 
-#define class_vec_def_size(T, S) \
-	class T##S: public basevar<node::DataType::##T, node::DataSize(S)>{ \
+#define cast_from_scalar(T, S) \
+		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
+		explicit T##S(T##1 f) : basevar(Type::variable) { \
+			src->optype = node::cast; \
+			src->childs.push_back(f.src); \
+		};
+
+#define cast_from_const_literal_scalar(T, S) \
+		/* Initializes each component of the vec<S> with the one argument of POD type*/ \
+		explicit T##S(plane_types::##T f) : basevar(Type::variable) {\
+			REPEAT_ASSIGNMENT(src->data[, ].d_##T, f, S); \
+			src->optype = node::OpType::o##T; \
+		};
+
+#define main_constructor(T, S) \
+		/* Initializes each component of the vec<S> with the S arguments of POD type*/ \
+		T##S(REPEAT_WITH_ID_AND_COMMA(plane_types::##T f, S)) : basevar(Type::variable) \
+		{ \
+			REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##T, f, S); \
+			src->optype = node::OpType::o##T; \
+		};
+
+#define class_vec_def_size1(T) \
+	/* All vectors of size 1: vec1, ivec1, uvec1, bvec1, dvec1*/ \
+	class T##1: public basevar<node::DataType::##T, node::DataSize(1)>{ \
 	public: \
-		T##S(Type t) : basevar(t) {}; \
-		T##S(REPEAT_WITH_ID_AND_COMMA(plane_types::##T f, S)) : basevar(Type::variable) { REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##T, f, S); src->optype = node::OpType::o##T; }; \
+		/* Default constructor */ \
+		T##1(Type t) : basevar(t) {}; \
+		/* Constructor from one argument of POD type*/ \
+		T##1(plane_types::##T f0) : basevar(Type::variable) { src->data[0].d_##T = f0; src->optype = node::OpType::o##T; }; \
 	};
 
-//explicit T##S(T##1 f) : basevar(Type::variable) { REPEAT_ASSIGNMENT(src->data[, ].d_##T, f->src->data[0], S); src->optype = node::OpType::o##T; }; \
+#define class_vec_def_size2(T) \
+	/* All vectors of size 2: vec2, ivec2, uvec2, bvec2, dvec2*/ \
+	class T##2: public basevar<node::DataType::##T, node::DataSize(2)>{ \
+	public: \
+		/* Default constructor*/ \
+		T##2(Type t) : basevar(t) {}; \
+		cast_from_scalar(T, 2); \
+		main_constructor(T, 2); \
+		cast_from_const_literal_scalar(T, 2); \
+	};
+
+#define class_vec_def_size3(T) \
+	/* All vectors of size 3: vec3, ivec3, uvec3, bvec3, dvec3*/ \
+	class T##3: public basevar<node::DataType::##T, node::DataSize(3)>{ \
+	public: \
+		/*Default constructor*/ \
+		T##3(Type t) : basevar(t) {}; \
+		cast_from_scalar(T, 3); \
+		main_constructor(T, 3); \
+		cast_from_const_literal_scalar(T, 3); \
+	};
+
+#define class_vec_def_size4(T) \
+	/* All vectors of size 4: vec4, ivec4, uvec4, bvec4, dvec4*/ \
+	class T##4: public basevar<node::DataType::##T, node::DataSize(4)>{ \
+	public: \
+		/*Default constructor*/ \
+		T##4(Type t) : basevar(t) {}; \
+		cast_from_scalar(T, 4); \
+		main_constructor(T, 4); \
+		cast_from_const_literal_scalar(T, 4); \
+	};
 
 #define class_mat_def_(T, PT, M, N, MbyN) \
 	class T##M##x##N: public basevar<node::DataType::##T, node::DataSize(M), node::DataSize(N)>{ \
@@ -243,10 +300,10 @@ namespace sb
 #define class_mat_def(T, PT, M, N) class_mat_def_(T, PT, M, N, MULL(M, N))
 
 #define class_vec_def(T) \
-	class_vec_def_size(T, 1) \
-	class_vec_def_size(T, 2) \
-	class_vec_def_size(T, 3) \
-	class_vec_def_size(T, 4)
+	class_vec_def_size1(T) \
+	class_vec_def_size2(T) \
+	class_vec_def_size3(T) \
+	class_vec_def_size4(T)
 
 	class_vec_def(vec);
 	class_vec_def(ivec);
@@ -426,6 +483,16 @@ namespace sb
 			{
 				ss << GetId(n->childs[0]) << "--";
 			}
+			case node::cast:
+			{
+				ss << GetType(n) << "(";
+				ss << GetId(n->childs[0]);
+				for (int i = 1; i < int(n->childs.size()); ++i)
+				{
+					ss << ", " << GetId(n->childs[0]);
+				}
+				ss << ")";
+			}
 			}
 
 			ss << ";\n";
@@ -535,7 +602,8 @@ namespace sb
 		int id = 0;
 	};
 
-	inline std::string genShader(vec2 v)
+	template<typename T>
+	inline std::string genShader(T v)
 	{
 		context ctx;
 		ctx.VisitNode(v.src);
