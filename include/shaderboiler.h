@@ -232,6 +232,23 @@ namespace sb
 			src->childs.push_back(f.src); \
 		};
 
+#define cast_from_vec_and_vec(T, S, V1, V2) \
+		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
+		explicit T##S(T##V1 v1, T##V2 v2) : basevar(Type::variable) { \
+			src->optype = node::cast; \
+			src->childs.push_back(v1.src); \
+			src->childs.push_back(v2.src); \
+		};
+
+#define cast_from_vec_and_vec_and_vec(T, S, V1, V2, V3) \
+		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
+		explicit T##S(T##V1 v1, T##V2 v2, T##V3 v3) : basevar(Type::variable) { \
+			src->optype = node::cast; \
+			src->childs.push_back(v1.src); \
+			src->childs.push_back(v2.src); \
+			src->childs.push_back(v3.src); \
+		};
+
 #define cast_from_const_literal_scalar(T, S) \
 		/* Initializes each component of the vec<S> with the one argument of POD type*/ \
 		explicit T##S(plane_types::##T f) : basevar(Type::variable) {\
@@ -275,6 +292,8 @@ namespace sb
 		/*Default constructor*/ \
 		T##3(Type t) : basevar(t) {}; \
 		cast_from_scalar(T, 3); \
+		cast_from_vec_and_vec(T, 3, 2, 1); \
+		cast_from_vec_and_vec(T, 3, 1, 2); \
 		main_constructor(T, 3); \
 		cast_from_const_literal_scalar(T, 3); \
 	};
@@ -286,6 +305,12 @@ namespace sb
 		/*Default constructor*/ \
 		T##4(Type t) : basevar(t) {}; \
 		cast_from_scalar(T, 4); \
+		cast_from_vec_and_vec(T, 4, 3, 1); \
+		cast_from_vec_and_vec(T, 4, 2, 2); \
+		cast_from_vec_and_vec(T, 4, 1, 3); \
+		cast_from_vec_and_vec_and_vec(T, 4, 1, 1, 2); \
+		cast_from_vec_and_vec_and_vec(T, 4, 1, 2, 1); \
+		cast_from_vec_and_vec_and_vec(T, 4, 2, 1, 1); \
 		main_constructor(T, 4); \
 		cast_from_const_literal_scalar(T, 4); \
 	};
@@ -489,7 +514,7 @@ namespace sb
 				ss << GetId(n->childs[0]);
 				for (int i = 1; i < int(n->childs.size()); ++i)
 				{
-					ss << ", " << GetId(n->childs[0]);
+					ss << ", " << GetId(n->childs[i]);
 				}
 				ss << ")";
 			}
