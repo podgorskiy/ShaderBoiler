@@ -249,6 +249,19 @@ namespace sb
 			src->childs.push_back(v3.src); \
 		};
 
+	template<typename T>
+	nodePtr GetPtr(T* x)
+	{
+		return x->src;
+	}
+
+#define drop_cast(T, S, V) \
+		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
+		explicit T##S(const T##V& v) : basevar(Type::variable) { \
+			src->optype = node::cast; \
+			src->childs.push_back(GetPtr(&v)); \
+		};
+
 #define cast_from_const_literal_scalar(T, S) \
 		/* Initializes each component of the vec<S> with the one argument of POD type*/ \
 		explicit T##S(plane_types::##T f) : basevar(Type::variable) {\
@@ -264,12 +277,17 @@ namespace sb
 			src->optype = node::OpType::o##T; \
 		};
 
+#define class_vec_dec_size(T, S) class T##S;
+
 #define class_vec_def_size1(T) \
 	/* All vectors of size 1: vec1, ivec1, uvec1, bvec1, dvec1*/ \
 	class T##1: public basevar<node::DataType::##T, node::DataSize(1)>{ \
 	public: \
 		/* Default constructor */ \
 		T##1(Type t) : basevar(t) {}; \
+		drop_cast(T, 1, 4); \
+		drop_cast(T, 1, 3); \
+		drop_cast(T, 1, 2); \
 		/* Constructor from one argument of POD type*/ \
 		T##1(plane_types::##T f0) : basevar(Type::variable) { src->data[0].d_##T = f0; src->optype = node::OpType::o##T; }; \
 	};
@@ -281,6 +299,8 @@ namespace sb
 		/* Default constructor*/ \
 		T##2(Type t) : basevar(t) {}; \
 		cast_from_scalar(T, 2); \
+		drop_cast(T, 2, 4); \
+		drop_cast(T, 2, 3); \
 		main_constructor(T, 2); \
 		cast_from_const_literal_scalar(T, 2); \
 	};
@@ -294,6 +314,7 @@ namespace sb
 		cast_from_scalar(T, 3); \
 		cast_from_vec_and_vec(T, 3, 2, 1); \
 		cast_from_vec_and_vec(T, 3, 1, 2); \
+		drop_cast(T, 3, 4); \
 		main_constructor(T, 3); \
 		cast_from_const_literal_scalar(T, 3); \
 	};
@@ -324,11 +345,22 @@ namespace sb
 	};
 #define class_mat_def(T, PT, M, N) class_mat_def_(T, PT, M, N, MULL(M, N))
 
+#define class_vec_dec(T) \
+	class_vec_dec_size(T, 1) \
+	class_vec_dec_size(T, 2) \
+	class_vec_dec_size(T, 3) \
+	class_vec_dec_size(T, 4)
+
 #define class_vec_def(T) \
 	class_vec_def_size1(T) \
 	class_vec_def_size2(T) \
 	class_vec_def_size3(T) \
 	class_vec_def_size4(T)
+
+	class_vec_dec(vec);
+	class_vec_dec(ivec);
+	class_vec_dec(uvec);
+	class_vec_dec(bvec);
 
 	class_vec_def(vec);
 	class_vec_def(ivec);
