@@ -413,8 +413,8 @@ namespace sb
 	op_ariphm_allvecTypes(1, 4, 4);
 
 	op_ariphm_allvecTypes(2, 1, 2);
-	op_ariphm_allvecTypes(3, 1, 2);
-	op_ariphm_allvecTypes(4, 1, 3);
+	op_ariphm_allvecTypes(3, 1, 3);
+	op_ariphm_allvecTypes(4, 1, 4);
 
 	//op_ariphm(mat2, mat2, mat2);
 	//op_ariphm(mat2, mat2, mat2);
