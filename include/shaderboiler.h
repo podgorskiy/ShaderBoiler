@@ -5,6 +5,8 @@
 #include <list>
 #include <vector>
 #include <cassert>
+#include <limits>
+#include <iomanip>
 
 namespace sb
 {
@@ -581,15 +583,45 @@ namespace sb
 		void VisitNodeInternal(nodePtr n);
 
 		std::string Emit(nodePtr n);
-		
+
 		static std::string GetType(nodePtr n);
+
+		template<typename T>
+		static void PrintConstLiteral(std::stringstream& ss, node::Data* d, std::string type, int size, std::string suffix = "");
+
+		template<typename T>
+		static T Get(node::Data* d, int i);
 
 		std::list<nodePtr> sortedList;
 		std::set<nodePtr> visitedNodes;
 		int id = 0;
 		int indent = 0;
 	};
-	
+
+	template<>
+	inline float context::Get<float>(node::Data* d, int i)
+	{
+		return d[i].d_vec;
+	}
+
+	template<>
+	inline int context::Get<int>(node::Data* d, int i)
+	{
+		return d[i].d_ivec;
+	}
+
+	template<>
+	inline unsigned int context::Get<unsigned int>(node::Data* d, int i)
+	{
+		return d[i].d_uvec;
+	}
+
+	template<>
+	inline std::string context::Get<std::string>(node::Data* d, int i)
+	{
+		return d[i].d_bvec ? "true" : "false";
+	}
+
 	inline void context::VisitNode(nodePtr n)
 	{
 		sortedList.clear();
@@ -622,6 +654,44 @@ namespace sb
 		}
 
 		return ss.str();
+	}
+
+	template<typename T>
+	void PrepareStream(std::stringstream& ss)
+	{}
+
+	template<>
+	void PrepareStream<double>(std::stringstream& ss)
+	{
+		ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << std::showpoint;
+	}
+	
+	template<>
+	void PrepareStream<float>(std::stringstream& ss)
+	{
+		ss << std::setprecision(std::numeric_limits<float>::digits10 + 1) << std::showpoint;
+	}
+
+	template<typename T>
+	void context::PrintConstLiteral(std::stringstream& ss, node::Data* d, std::string type, int size, std::string suffix)
+	{
+		std::ios_base::fmtflags oldFlags = ss.flags();
+		PrepareStream<T>(ss);
+		if (size == 1)
+		{
+			ss << Get<T>(d, 0);
+		}
+		else
+		{
+			ss << type << "(";
+			ss << Get<T>(d, 0);
+			for (int i = 1; i < size; ++i)
+			{
+				ss << ", " << Get<T>(d, i) << suffix;
+			}
+			ss << ")";
+		}
+		ss.flags(oldFlags);
 	}
 
 	inline std::string context::Emit(nodePtr n)
@@ -736,29 +806,22 @@ namespace sb
 			{
 			case node::floatConstant:
 			{
-				ss << n->data[0].d_vec;
+				PrintConstLiteral<float>(ss, n->data, GetType(n), n->datasize);
 			}
 			break;
 			case node::integerConstant:
 			{
-				ss << n->data[0].d_ivec;
+				PrintConstLiteral<int>(ss, n->data, GetType(n), n->datasize);
 			}
 			break;
 			case node::unsignedIntegerConstant:
 			{
-				ss << n->data[0].d_uvec << "u";
+				PrintConstLiteral<unsigned int>(ss, n->data, GetType(n), n->datasize, "u");
 			}
 			break;
 			case node::booleanConstant:
 			{
-				if (n->data[0].d_bvec)
-				{
-					ss << "true";
-				}
-				else
-				{
-					ss << "false";
-				}
+				PrintConstLiteral<std::string>(ss, n->data, GetType(n), n->datasize);
 			}
 			break;
 			case node::addition:
