@@ -96,20 +96,84 @@ namespace sb
 			bool d_bvec;
 		};
 
-		int id = -1;
+		bool Initialised()
+		{
+			return id != -1;
+		}
+
+		std::string GetId() const
+		{
+			if (name.size() == 0)
+			{
+				int base = 'z' - 'a' + 1;
+
+				int n = id;
+
+				if (n == 0)
+				{
+					return "a";
+				}
+
+				std::string prefix;
+				while (n != 0)
+				{
+					int a = n % base;
+					n /= base;
+					prefix += 'a' + char(a);
+				}
+				return prefix;
+			}
+			else
+			{
+				return name;
+			}
+		}
+
+		void InitId(int id)
+		{
+			this->id = id;
+		}
+
+		void CopyIdFrom(nodePtr other)
+		{
+			id = other->id;
+			name = other->name;
+		}
+
+		OpType optype;
+		std::vector<nodePtr> childs;
+		std::string name;
+		Data data[16];
 		DataType datatype;
 		DataSize datasize;
 		DataSize datasize_secondary;
-		Data data[16];
-		OpType optype;
-		std::vector<nodePtr> childs;
+
+	private:
+		int id = -1;
 	};
 
 	template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
 	class basevar
 	{
 	public:
-		basevar(Type t) : type(t)
+		basevar(Type t)
+		{
+			Init(t);
+		}
+		basevar(Type t, const std::string& name)
+		{
+			Init(t);
+			src->name = name;
+		}
+
+		void SetName(const std::string& name)
+		{
+			src->name = name;
+		}
+
+		nodePtr src;
+	private:
+		void Init(Type t)
 		{
 			src = nodePtr(new node());
 			src->datatype = T;
@@ -120,15 +184,6 @@ namespace sb
 				src->optype = node::input;
 			}
 		}
-		basevar operator =(basevar& other)
-		{
-			src = other.src;
-			return *this;
-		}
-
-		nodePtr src;
-		Type type;
-	private:
 	};
 
 	namespace plane_types
@@ -334,6 +389,14 @@ namespace sb
 			src->optype = node::OpType::o##T; \
 		};
 
+#define default_constructors(T, S) \
+		T##S(Type t) : basevar(t) {}; \
+		T##S(Type t, const std::string& name) : basevar(t, name) {}; \
+		T##S& SetName(const std::string& name) { \
+			src->name = name; \
+			return *this; \
+		}
+
 #define class_vec_dec_size(T, S) class T##S;
 
 #define class_vec_def_size1(T) \
@@ -341,7 +404,7 @@ namespace sb
 	class T##1: public basevar<node::DataType::##T, node::DataSize(1)>{ \
 	public: \
 		/* Default constructor */ \
-		T##1(Type t) : basevar(t) {}; \
+		default_constructors(T, 1) \
 		drop_cast(T, 1, 4); \
 		drop_cast(T, 1, 3); \
 		drop_cast(T, 1, 2); \
@@ -354,8 +417,7 @@ namespace sb
 	/* All vectors of size 2: vec2, ivec2, uvec2, bvec2, dvec2*/ \
 	class T##2: public basevar<node::DataType::##T, node::DataSize(2)>{ \
 	public: \
-		/* Default constructor*/ \
-		T##2(Type t) : basevar(t) {}; \
+		default_constructors(T, 2) \
 		cast_from_scalar(T, 2); \
 		drop_cast(T, 2, 4); \
 		drop_cast(T, 2, 3); \
@@ -368,8 +430,7 @@ namespace sb
 	/* All vectors of size 3: vec3, ivec3, uvec3, bvec3, dvec3*/ \
 	class T##3: public basevar<node::DataType::##T, node::DataSize(3)>{ \
 	public: \
-		/*Default constructor*/ \
-		T##3(Type t) : basevar(t) {}; \
+		default_constructors(T, 3) \
 		cast_from_scalar(T, 3); \
 		cast_from_vec_and_vec(T, 3, 2, 1); \
 		cast_from_vec_and_vec(T, 3, 1, 2); \
@@ -383,8 +444,7 @@ namespace sb
 	/* All vectors of size 4: vec4, ivec4, uvec4, bvec4, dvec4*/ \
 	class T##4: public basevar<node::DataType::##T, node::DataSize(4)>{ \
 	public: \
-		/*Default constructor*/ \
-		T##4(Type t) : basevar(t) {}; \
+		default_constructors(T, 4) \
 		cast_from_scalar(T, 4); \
 		cast_from_vec_and_vec(T, 4, 3, 1); \
 		cast_from_vec_and_vec(T, 4, 2, 2); \
@@ -509,10 +569,6 @@ namespace sb
 
 		std::string Emit(nodePtr n);
 		
-		static std::string GetId(nodePtr n);
-
-		static std::string GetId(int n);
-
 		static std::string GetType(nodePtr n);
 
 		std::list<nodePtr> sortedList;
@@ -558,70 +614,69 @@ namespace sb
 
 		if (node::assign_bit & n->optype)
 		{
-			int assign_to_id = n->childs[0]->id;
-			assert(assign_to_id != -1); // If false - using uninitialised variable
-			n->id = assign_to_id; // assignment node is different from it's first argument node, but we want to preserve the same name
+			assert(n->childs[0]->Initialised()); // If false - using uninitialised variable
+			n->CopyIdFrom(n->childs[0]); // assignment node is different from it's first argument node, but we want to preserve the same name
 
-			ss << GetId(n);
+			ss << n->GetId();
 
 			switch (n->optype)
 			{
 			case node::assign_addition:
 			{
-				ss << " += " << GetId(n->childs[1]);
+				ss << " += " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_substruction:
 			{
-				ss << " -= " << GetId(n->childs[1]);
+				ss << " -= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_multiplication:
 			{
-				ss << " *= " << GetId(n->childs[1]);
+				ss << " *= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_division:
 			{
-				ss << " /= " << GetId(n->childs[1]);
+				ss << " /= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_mod:
 			{
-				ss << " %= " << GetId(n->childs[1]);
+				ss << " %= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_lshift:
 			{
-				ss << " <<= " << GetId(n->childs[1]);
+				ss << " <<= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_rshift:
 			{
-				ss << " >>= " << GetId(n->childs[1]);
+				ss << " >>= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_and:
 			{
-				ss << " &= " << GetId(n->childs[1]);
+				ss << " &= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_or:
 			{
-				ss << " |= " << GetId(n->childs[1]);
+				ss << " |= " << n->childs[1]->GetId();
 			}
 			break;
 			case node::assign_xor:
 			{
-				ss << " ^= " << GetId(n->childs[1]);
+				ss << " ^= " << n->childs[1]->GetId();
 			}
 			break;
 			}
 		}
 		else
 		{
-			n->id = id++;
-			ss << GetType(n) << " " << GetId(n) << " = ";
+			n->InitId(id++);
+			ss << GetType(n) << " " << n->GetId() << " = ";
 
 			switch (n->optype)
 			{
@@ -654,91 +709,91 @@ namespace sb
 			break;
 			case node::addition:
 			{
-				ss << GetId(n->childs[0]) << " + " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " + " << n->childs[1]->GetId();
 			}
 			break;
 			case node::substruction:
 			{
-				ss << GetId(n->childs[0]) << " - " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " - " << n->childs[1]->GetId();
 			}
 			break;
 			case node::multiplication:
 			{
-				ss << GetId(n->childs[0]) << " * " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " * " << n->childs[1]->GetId();
 			}
 			break;
 			case node::division:
 			{
-				ss << GetId(n->childs[0]) << " / " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " / " << n->childs[1]->GetId();
 			}
 			break;
 			case node::lshift:
 			{
-				ss << GetId(n->childs[0]) << " << " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " << " << n->childs[1]->GetId();
 			}
 			case node::rshift:
 			{
-				ss << GetId(n->childs[0]) << " >> " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " >> " << n->childs[1]->GetId();
 			}
 			case node:: or :
 			{
-				ss << GetId(n->childs[0]) << " | " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " | " << n->childs[1]->GetId();
 			}
 			case node::xor:
 			{
-				ss << GetId(n->childs[0]) << " ^ " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " ^ " << n->childs[1]->GetId();
 			}
 			case node::and:
 			{
-				ss << GetId(n->childs[0]) << " & " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " & " << n->childs[1]->GetId();
 			}
 			case node::lor:
 			{
-				ss << GetId(n->childs[0]) << " || " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " || " << n->childs[1]->GetId();
 			}
 			case node::lxor:
 			{
-				ss << GetId(n->childs[0]) << " ^^ " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " ^^ " << n->childs[1]->GetId();
 			}
 			case node::land:
 			{
-				ss << GetId(n->childs[0]) << " && " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " && " << n->childs[1]->GetId();
 			}
 			case node::equal:
 			{
-				ss << GetId(n->childs[0]) << " == " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " == " << n->childs[1]->GetId();
 			}
 			case node::mod:
 			{
-				ss << GetId(n->childs[0]) << " % " << GetId(n->childs[1]);
+				ss << n->childs[0]->GetId() << " % " << n->childs[1]->GetId();
 			}
 			case node::neg:
 			{
-				ss << "-" << GetId(n->childs[0]);
+				ss << "-" << n->childs[0]->GetId();
 			}
 			case node::preinc:
 			{
-				ss << "++" << GetId(n->childs[0]);
+				ss << "++" << n->childs[0]->GetId();
 			}
 			case node::predec:
 			{
-				ss << "--" << GetId(n->childs[0]);
+				ss << "--" << n->childs[0]->GetId();
 			}
 			case node::postinc:
 			{
-				ss << GetId(n->childs[0]) << "++";
+				ss << n->childs[0]->GetId() << "++";
 			}
 			case node::postdec:
 			{
-				ss << GetId(n->childs[0]) << "--";
+				ss << n->childs[0]->GetId() << "--";
 			}
 			case node::cast:
 			{
 				ss << GetType(n) << "(";
-				ss << GetId(n->childs[0]);
+				ss << n->childs[0]->GetId();
 				for (int i = 1; i < int(n->childs.size()); ++i)
 				{
-					ss << ", " << GetId(n->childs[i]);
+					ss << ", " << n->childs[i]->GetId();
 				}
 				ss << ")";
 			}
@@ -749,31 +804,6 @@ namespace sb
 		return ss.str();
 	}
 	
-	inline std::string context::GetId(nodePtr n)
-	{
-		return GetId(n->id);
-	}
-
-	inline std::string context::GetId(int n)
-	{
-		int base = 'z' - 'a' + 1;
-
-		if (n == 0)
-		{
-			return "a";
-		}
-
-		std::string name;
-		while (n != 0)
-		{
-			int a = n % base;
-			n /= base;
-			name += 'a' + char(a);
-		}
-
-		return name;
-	}
-
 	template<typename T>
 	inline std::string genShader(T v)
 	{
