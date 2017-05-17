@@ -565,6 +565,15 @@ namespace sb
 		std::string GenerateCode();
 
 	private:
+		class IndentGuard
+		{
+		public:
+			IndentGuard(context* c) : p(++c->indent) {};
+			~IndentGuard() { --p; };
+		private:
+			int p;
+		}; 
+
 		void VisitNodeInternal(nodePtr n);
 
 		std::string Emit(nodePtr n);
@@ -574,6 +583,7 @@ namespace sb
 		std::list<nodePtr> sortedList;
 		std::set<nodePtr> visitedNodes;
 		int id = 0;
+		int indent = 0;
 	};
 	
 	inline void context::VisitNode(nodePtr n)
@@ -600,6 +610,8 @@ namespace sb
 	{
 		std::stringstream ss;
 
+		IndentGuard ig(this);
+
 		for (nodePtr n : sortedList)
 		{
 			ss << Emit(n);
@@ -611,6 +623,11 @@ namespace sb
 	inline std::string context::Emit(nodePtr n)
 	{
 		std::stringstream ss;
+
+		for (int i = 0; i < indent; ++i)
+		{
+			ss << "\t";
+		}
 
 		if (node::assign_bit & n->optype)
 		{
