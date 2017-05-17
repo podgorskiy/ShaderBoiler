@@ -4,6 +4,7 @@
 #include <set>
 #include <list>
 #include <vector>
+#include <cassert>
 
 namespace sb
 {
@@ -42,7 +43,7 @@ namespace sb
 
 		enum OpType
 		{
-			input,
+			input = 0,
 			output,
 			floatConstant,
 			integerConstant,
@@ -72,7 +73,19 @@ namespace sb
 			ovec = floatConstant,
 			oivec = integerConstant,
 			ouvec = unsignedIntegerConstant,
-			obvec = booleanConstant
+			obvec = booleanConstant,
+
+			assign_bit = 0x1000,
+			assign_addition = assign_bit,
+			assign_substruction,
+			assign_multiplication,
+			assign_division,
+			assign_mod,
+			assign_lshift,
+			assign_rshift,
+			assign_and,
+			assign_or,
+			assign_xor
 		};
 		
 		union Data
@@ -83,7 +96,7 @@ namespace sb
 			bool d_bvec;
 		};
 
-		int id;
+		int id = -1;
 		DataType datatype;
 		DataSize datasize;
 		DataSize datasize_secondary;
@@ -217,20 +230,49 @@ namespace sb
 		return result; \
 	}
 
+#define assignop(T1, T2, X, E)\
+	T1 operator X (T1&a, const T2& b) { \
+		T1 result(Type::variable); \
+		result.src->optype = node::##E; \
+		result.src->childs.push_back(a.src); \
+		result.src->childs.push_back(b.src); \
+		a = result; \
+		return a; \
+	}
+
 #define op_ariphm(T1, T2, T3)\
 	binop(T1, T2, T3, +, addition); \
 	binop(T1, T2, T3, -, substruction); \
 	binop(T1, T2, T3, *, multiplication); \
-	binop(T1, T2, T3, /, division);
-	
+	binop(T1, T2, T3, /, division); \
+
+#define assigop_ariphm(T1, T2)\
+	assignop(T1, T2, +=, assign_addition); \
+	assignop(T1, T2, -=, assign_substruction); \
+	assignop(T1, T2, *=, assign_multiplication); \
+	assignop(T1, T2, /=, assign_division); \
+
+#define op_mod(T1, T2, T3) \
+	binop(T1, T2, T3, %, mod);
+
+#define assigop_mod(T1, T2) \
+	assignop(T1, T2, %=, assign_mod); \
+
 #define op_shifts(T1, T2)\
-	binop(T1, T2, T3, <<, lshift); \
-	binop(T1, T2, T3, >>, rshift);
+	binop(T1, T2, T1, <<, lshift); \
+	binop(T1, T2, T1, >>, rshift); \
+	assignop(T1, T2, <<=, assign_lshift); \
+	assignop(T1, T2, >>=, assign_rshift); \
 
 #define op_bitop(T1, T2, T3)\
 	binop(T1, T2, T3, &, and); \
 	binop(T1, T2, T3, |, or); \
 	binop(T1, T2, T3, ^, xor);
+
+#define assigop_bitop(T1, T2)\
+	assignop(T1, T2, &=, assign_and); \
+	assignop(T1, T2, |=, assign_or); \
+	assignop(T1, T2, ^=, assign_xor);
 
 #define type_cast(T, S) type_cast_to_##T(S)
 
@@ -394,16 +436,29 @@ namespace sb
 	typedef mat3x3 mat3;
 	typedef mat4x4 mat4;
 
+	typedef vec1 Float;
+
 #define op_ariphm_allvecTypes(S1, S2, S3) \
 	op_ariphm(vec##S1, vec##S2, vec##S3) \
 	op_ariphm(bvec##S1, bvec##S2, bvec##S3) \
 	op_ariphm(ivec##S1, ivec##S2, ivec##S3) \
 	op_ariphm(uvec##S1, uvec##S2, uvec##S3)
 	
+#define assigop_ariphm_allvecTypes(S1, S2)\
+	assigop_ariphm(vec##S1, vec##S2) \
+	assigop_ariphm(bvec##S1, bvec##S2) \
+	assigop_ariphm(ivec##S1, ivec##S2) \
+	assigop_ariphm(uvec##S1, uvec##S2)
+
 	op_ariphm_allvecTypes(1, 1, 1);
 	op_ariphm_allvecTypes(2, 2, 2);
 	op_ariphm_allvecTypes(3, 3, 3);
 	op_ariphm_allvecTypes(4, 4, 4);
+
+	assigop_ariphm_allvecTypes(1, 1);
+	assigop_ariphm_allvecTypes(2, 2);
+	assigop_ariphm_allvecTypes(3, 3);
+	assigop_ariphm_allvecTypes(4, 4);
 
 	// One operand is a scalar, and the other is a vector or matrix. In this case, the scalar operation is 
 	// applied independently to each component of the vector or matrix, resulting in the same size vector
@@ -416,12 +471,21 @@ namespace sb
 	op_ariphm_allvecTypes(3, 1, 3);
 	op_ariphm_allvecTypes(4, 1, 4);
 
+	assigop_ariphm_allvecTypes(2, 1);
+	assigop_ariphm_allvecTypes(3, 1);
+	assigop_ariphm_allvecTypes(4, 1);
+
 	//op_ariphm(mat2, mat2, mat2);
 	//op_ariphm(mat2, mat2, mat2);
 	
 	binop(bvec1, bvec1, bvec1, &&, land);
 	binop(bvec1, bvec1, bvec1, ||, lor);
 	//binop(bvec1, bvec1, bvec1, ^^, lxor); // operator not supported by c++
+
+	bvec1 operator<(const vec1& a, const vec1& b)
+	{
+		return bvec1(variable);
+	}
 
 #undef binop
 #undef class_def_size1
@@ -437,17 +501,126 @@ namespace sb
 	class context
 	{
 	public:
-		void VisitNode(nodePtr n)
+		void VisitNode(nodePtr n);
+		std::string GenerateCode();
+
+	private:
+		void VisitNodeInternal(nodePtr n);
+
+		std::string Emit(nodePtr n);
+		
+		static std::string GetId(nodePtr n);
+
+		static std::string GetId(int n);
+
+		static std::string GetType(nodePtr n);
+
+		std::list<nodePtr> sortedList;
+		std::set<nodePtr> visitedNodes;
+		int id = 0;
+	};
+	
+	inline void context::VisitNode(nodePtr n)
+	{
+		sortedList.clear();
+		visitedNodes.clear();
+		VisitNodeInternal(n);
+	}
+
+	inline void context::VisitNodeInternal(nodePtr n)
+	{
+		if (visitedNodes.find(n) == visitedNodes.end())
 		{
-			sortedList.clear();
-			visitedNodes.clear();
-			VisitNodeInternal(n);
+			for (auto& child : n->childs)
+			{
+				VisitNodeInternal(child);
+			}
+			sortedList.push_back(n);
+			visitedNodes.insert(n);
+		}
+	}
+
+	inline std::string context::GenerateCode()
+	{
+		std::stringstream ss;
+
+		for (nodePtr n : sortedList)
+		{
+			ss << Emit(n);
 		}
 
-		std::string Emit(nodePtr n)
+		return ss.str();
+	}
+
+	inline std::string context::Emit(nodePtr n)
+	{
+		std::stringstream ss;
+
+		if (node::assign_bit & n->optype)
+		{
+			int assign_to_id = n->childs[0]->id;
+			assert(assign_to_id != -1); // If false - using uninitialised variable
+			n->id = assign_to_id; // assignment node is different from it's first argument node, but we want to preserve the same name
+
+			ss << GetId(n);
+
+			switch (n->optype)
+			{
+			case node::assign_addition:
+			{
+				ss << " += " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_substruction:
+			{
+				ss << " -= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_multiplication:
+			{
+				ss << " *= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_division:
+			{
+				ss << " /= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_mod:
+			{
+				ss << " %= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_lshift:
+			{
+				ss << " <<= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_rshift:
+			{
+				ss << " >>= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_and:
+			{
+				ss << " &= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_or:
+			{
+				ss << " |= " << GetId(n->childs[1]);
+			}
+			break;
+			case node::assign_xor:
+			{
+				ss << " ^= " << GetId(n->childs[1]);
+			}
+			break;
+			}
+		}
+		else
 		{
 			n->id = id++;
-			std::stringstream ss;
 			ss << GetType(n) << " " << GetId(n) << " = ";
 
 			switch (n->optype)
@@ -570,113 +743,36 @@ namespace sb
 				ss << ")";
 			}
 			}
-
-			ss << ";\n";
-
-			return ss.str();
 		}
 
-		std::string GenerateCode()
+		ss << ";\n";
+		return ss.str();
+	}
+	
+	inline std::string context::GetId(nodePtr n)
+	{
+		return GetId(n->id);
+	}
+
+	inline std::string context::GetId(int n)
+	{
+		int base = 'z' - 'a' + 1;
+
+		if (n == 0)
 		{
-			std::stringstream ss;
-
-			for (nodePtr n : sortedList)
-			{
-				ss << Emit(n);
-			}
-
-			return ss.str();
+			return "a";
 		}
 
-	private:
-		void VisitNodeInternal(nodePtr n)
+		std::string name;
+		while (n != 0)
 		{
-			if (visitedNodes.find(n) == visitedNodes.end())
-			{
-				for (auto& child : n->childs)
-				{
-					VisitNodeInternal(child);
-				}
-				sortedList.push_back(n);
-				visitedNodes.insert(n);
-			}
+			int a = n % base;
+			n /= base;
+			name += 'a' + char(a);
 		}
 
-		std::string GetType(nodePtr n)
-		{
-			std::string size;
-			switch (n->datasize)
-			{
-			case node::DataSize::size1: size = "1"; break;
-			case node::DataSize::size2: size = "2"; break;
-			case node::DataSize::size3: size = "3"; break;
-			case node::DataSize::size4: size = "4"; break;
-			}
-
-			if (n->datasize == node::DataSize::size1)
-			{
-				switch (n->datatype)
-				{
-				case node::DataType::bvec: return "bool";
-				case node::DataType::ivec: return "int";
-				case node::DataType::uvec: return "uint";
-				case node::DataType::dvec: return "double";
-				case node::DataType::vec: return "float";
-				}
-			}
-
-			std::string size_secondary;
-			switch (n->datasize_secondary)
-			{
-			case node::DataSize::size1: size_secondary = "1"; break;
-			case node::DataSize::size2: size_secondary = "2"; break;
-			case node::DataSize::size3: size_secondary = "3"; break;
-			case node::DataSize::size4: size_secondary = "4"; break;
-			}
-
-			switch (n->datatype)
-			{
-			case node::DataType::bvec: return "bvec" + size;
-			case node::DataType::ivec: return "ivec" + size;
-			case node::DataType::uvec: return "uvec" + size;
-			case node::DataType::dvec: return "dvec" + size;
-			case node::DataType::vec: return "vec" + size;
-
-			case node::DataType::mat: return "mat" + size + "x" + size_secondary;
-			case node::DataType::dmat: return "dmat" + size + "x" + size_secondary;
-			}
-			return "void";
-		}
-
-		std::string GetId(nodePtr n)
-		{
-			return GetId(n->id);
-		}
-
-		std::string GetId(int n)
-		{
-			int base = 'z' - 'a' + 1;
-
-			if (n == 0)
-			{
-				return "a";
-			}
-
-			std::string name;
-			while (n != 0)
-			{
-				int a = n % base;
-				n /= base;
-				name += 'a' + char(a);
-			}
-
-			return name;
-		}
-
-		std::list<nodePtr> sortedList;
-		std::set<nodePtr> visitedNodes;
-		int id = 0;
-	};
+		return name;
+	}
 
 	template<typename T>
 	inline std::string genShader(T v)
@@ -684,5 +780,51 @@ namespace sb
 		context ctx;
 		ctx.VisitNode(v.src);
 		return ctx.GenerateCode();
+	}
+
+	inline std::string context::GetType(nodePtr n)
+	{
+		std::string size;
+		switch (n->datasize)
+		{
+		case node::DataSize::size1: size = "1"; break;
+		case node::DataSize::size2: size = "2"; break;
+		case node::DataSize::size3: size = "3"; break;
+		case node::DataSize::size4: size = "4"; break;
+		}
+
+		if (n->datasize == node::DataSize::size1)
+		{
+			switch (n->datatype)
+			{
+			case node::DataType::bvec: return "bool";
+			case node::DataType::ivec: return "int";
+			case node::DataType::uvec: return "uint";
+			case node::DataType::dvec: return "double";
+			case node::DataType::vec: return "float";
+			}
+		}
+
+		std::string size_secondary;
+		switch (n->datasize_secondary)
+		{
+		case node::DataSize::size1: size_secondary = "1"; break;
+		case node::DataSize::size2: size_secondary = "2"; break;
+		case node::DataSize::size3: size_secondary = "3"; break;
+		case node::DataSize::size4: size_secondary = "4"; break;
+		}
+
+		switch (n->datatype)
+		{
+		case node::DataType::bvec: return "bvec" + size;
+		case node::DataType::ivec: return "ivec" + size;
+		case node::DataType::uvec: return "uvec" + size;
+		case node::DataType::dvec: return "dvec" + size;
+		case node::DataType::vec: return "vec" + size;
+
+		case node::DataType::mat: return "mat" + size + "x" + size_secondary;
+		case node::DataType::dmat: return "dmat" + size + "x" + size_secondary;
+		}
+		return "void";
 	}
 }
