@@ -43,8 +43,6 @@ namespace sb
 
 		enum OpType
 		{
-			input = 0,
-			output,
 			floatConstant,
 			integerConstant,
 			unsignedIntegerConstant,
@@ -76,7 +74,7 @@ namespace sb
 			obvec = booleanConstant,
 
 			assign_bit = 0x1000,
-			assign_addition = assign_bit,
+			assign_addition,
 			assign_substruction,
 			assign_multiplication,
 			assign_division,
@@ -85,7 +83,14 @@ namespace sb
 			assign_rshift,
 			assign_and,
 			assign_or,
-			assign_xor
+			assign_xor,
+
+			io_bit = assign_bit << 1,
+			io_input,
+			io_output,
+			io_uniform,
+			io_attribute,
+			io_varying,
 		};
 		
 		union Data
@@ -181,7 +186,7 @@ namespace sb
 			src->datasize_secondary = S2;
 			if (t == in)
 			{
-				src->optype = node::input;
+				src->optype = node::io_input;
 			}
 		}
 	};
@@ -390,7 +395,6 @@ namespace sb
 		};
 
 #define default_constructors(T, S) \
-		T##S(Type t) : basevar(t) {}; \
 		T##S(Type t, const std::string& name) : basevar(t, name) {}; \
 		T##S& SetName(const std::string& name) { \
 			src->name = name; \
@@ -686,6 +690,39 @@ namespace sb
 			case node::assign_xor:
 			{
 				ss << " ^= " << n->childs[1]->GetId();
+			}
+			break;
+			}
+		}
+		else if (node::io_bit & n->optype)
+		{
+			n->InitId(id++);
+
+			switch (n->optype)
+			{
+			case node::io_input:
+			{
+				ss << "in " << GetType(n) << " " << n->GetId();
+			}
+			break;
+			case node::io_output:
+			{
+				ss << "out " << GetType(n) << " " << n->GetId();
+			}
+			break;
+			case node::io_uniform:
+			{
+				ss << "uniform " << GetType(n) << " " << n->GetId();
+			}
+			break;
+			case node::io_attribute:
+			{
+				ss << "attribute " << GetType(n) << " " << n->GetId();
+			}
+			break;
+			case node::io_varying:
+			{
+				ss << "varying " << GetType(n) << " " << n->GetId();
 			}
 			break;
 			}
