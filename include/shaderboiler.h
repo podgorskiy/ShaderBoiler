@@ -571,6 +571,9 @@ namespace sb
 	typedef mat4x4 mat4;
 
 	typedef vec1 Float;
+	typedef ivec1 Int;
+	typedef uvec1 UInt;
+	typedef bvec1 Bool;
 
 #define op_ariphm_allvecTypes(S1, S2, S3) \
 	op_ariphm(vec##S1, vec##S2, vec##S3) \
