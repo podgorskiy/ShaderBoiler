@@ -344,7 +344,7 @@ namespace sb
 	/* Assign operator, like T1 a; a = T2(); Not trivial for input-output variables */ \
 	/* Inside class definition */ \
 	T1##S operator = (const T2##S& x) { \
-		bool io_node = (src->optype & node::io_bit) != 0; \
+		bool io_node = (src->optype & node::io_bit) != 0 || (src->optype & node::predefined_output) != 0; \
 		bool io_assign_node = (src->childs.size() > 0) && (src->childs[0]->optype & node::io_bit) != 0; \
 		if (io_node || io_assign_node) {\
 			T1##S result; \
@@ -702,7 +702,43 @@ namespace sb
 			return v;
 		}
 
+		// Various outputs
+		vec4 gl_Position;
+		vec1 gl_PointSize;
+		ivec1 gl_PrimitiveID;
+		ivec1 gl_Layer;
+		ivec1 gl_ViewportIndex;
+		vec1 gl_FragDepth;
+		vec4 gl_FragColor;
+
+		context()
+		{
+			gl_Position = vec4("gl_Position", node::predefined_output);
+			gl_PointSize = vec1("gl_PointSize", node::predefined_output);
+			gl_PrimitiveID = ivec1("gl_PrimitiveID", node::predefined_output);
+			gl_Layer = ivec1("gl_Layer", node::predefined_output);
+			gl_ViewportIndex = ivec1("gl_ViewportIndex", node::predefined_output);
+			gl_FragDepth = vec1("gl_FragDepth", node::predefined_output);
+			gl_FragColor = vec4("gl_FragColor", node::predefined_output);
+
+			Register(gl_Position);
+			Register(gl_PointSize);
+			Register(gl_PrimitiveID);
+			Register(gl_Layer);
+			Register(gl_ViewportIndex);
+			Register(gl_FragDepth);
+			Register(gl_FragColor);
+		}
+
 	private:
+		template<typename T>
+		void Register(T& x)
+		{
+			nodeshellPtr shell(new nodeshell(x.src));
+			x.shell = shell;
+			targetList.push_back(shell);
+		}
+
 		class IndentGuard
 		{
 		public:
@@ -714,8 +750,7 @@ namespace sb
 
 		std::string GenerateCode();
 
-		void VisitNode(nodePtr n);
-		void VisitNodeInternal(nodePtr n, std::list<nodePtr>& defaultList);
+		void VisitNode(nodePtr n, std::list<nodePtr>& defaultList);
 
 		std::string Emit(nodePtr n);
 
@@ -738,10 +773,15 @@ namespace sb
 
 	inline std::string context::genShader()
 	{
+		ioVariablesList.clear();
+		listOffunctionNodesList.clear();
+		mainBlockList.clear();
+		visitedNodes.clear();
+
 		// Visiting the target forest
 		for (std::list<nodeshellPtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
 		{
-			VisitNode((*it)->n);
+			VisitNode((*it)->n, mainBlockList);
 		}
 		return GenerateCode();
 	}
@@ -770,16 +810,7 @@ namespace sb
 		return d[i].d_bvec ? "true" : "false";
 	}
 
-	inline void context::VisitNode(nodePtr n)
-	{
-		ioVariablesList.clear();
-		listOffunctionNodesList.clear();
-		mainBlockList.clear();
-		visitedNodes.clear();
-		VisitNodeInternal(n, mainBlockList);
-	}
-
-	inline void context::VisitNodeInternal(nodePtr n, std::list<nodePtr>& defaultList)
+	inline void context::VisitNode(nodePtr n, std::list<nodePtr>& defaultList)
 	{
 		if (visitedNodes.find(n) == visitedNodes.end())
 		{
@@ -792,7 +823,7 @@ namespace sb
 
 			for (auto& child : n->childs)
 			{
-				VisitNodeInternal(child, *listToUse);
+				VisitNode(child, *listToUse);
 			}
 			
 			listToUse->push_back(n);
@@ -865,6 +896,7 @@ namespace sb
 	{
 		if (node::predefined_bit & n->optype)
 		{
+			n->InitId(id++);
 			return "";
 		}
 
@@ -1145,6 +1177,30 @@ namespace sb
 	}
 
 #define define_constant(T, X) static const T X(#X, node::predefined_const)
+
+	// Various inputs
+	define_constant(vec4, gl_FragCoord);
+	define_constant(bvec1, gl_FrontFacing);
+	define_constant(vec2, gl_PointCoord);
+	define_constant(ivec1, gl_VertexID);
+	define_constant(ivec1, gl_InstanceID);
+	define_constant(ivec1, gl_PatchVerticesIn);
+	define_constant(ivec1, gl_PrimitiveID);
+	define_constant(ivec1, gl_PrimitiveIDIn);
+	define_constant(ivec1, gl_InvocationID);
+	define_constant(vec3, gl_TessCoord);
+	define_constant(ivec1, gl_SampleID);
+	define_constant(vec2, gl_SamplePosition);
+	define_constant(ivec1, gl_Layer);
+	define_constant(ivec1, gl_ViewportIndex);
+	define_constant(uvec3, gl_NumWorkGroups);
+	define_constant(uvec3, gl_WorkGroupID);
+	define_constant(uvec3, gl_LocalInvocationID);
+	define_constant(uvec3, gl_GlobalInvocationID);
+	define_constant(uvec1, gl_LocalInvocationIndex);
+
+
+	// Constants
 
 	define_constant(ivec1, gl_MaxVertexAttribs);
 	define_constant(ivec1, gl_MaxVertexOutputComponents);
