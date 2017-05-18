@@ -645,7 +645,7 @@ namespace sb
 			int p;
 		}; 
 
-		void VisitNodeInternal(nodePtr n);
+		void VisitNodeInternal(nodePtr n, std::list<nodePtr>& defaultList);
 
 		std::string Emit(nodePtr n);
 
@@ -657,7 +657,9 @@ namespace sb
 		template<typename T>
 		static T Get(node::Data* d, int i);
 
-		std::list<nodePtr> sortedList;
+		std::list<nodePtr> ioVariablesList;
+		std::list<std::list<nodePtr> > listOffunctionNodesList;
+		std::list<nodePtr> mainBlockList;
 		std::set<nodePtr> visitedNodes;
 		int id = 0;
 		int indent = 0;
@@ -689,20 +691,30 @@ namespace sb
 
 	inline void context::VisitNode(nodePtr n)
 	{
-		sortedList.clear();
+		ioVariablesList.clear();
+		listOffunctionNodesList.clear();
+		mainBlockList.clear();
 		visitedNodes.clear();
-		VisitNodeInternal(n);
+		VisitNodeInternal(n, mainBlockList);
 	}
 
-	inline void context::VisitNodeInternal(nodePtr n)
+	inline void context::VisitNodeInternal(nodePtr n, std::list<nodePtr>& defaultList)
 	{
 		if (visitedNodes.find(n) == visitedNodes.end())
 		{
+			std::list<nodePtr>* listToUse = &defaultList;
+
+			if (n->optype & node::io_bit)
+			{
+				listToUse = &ioVariablesList;
+			}
+
 			for (auto& child : n->childs)
 			{
-				VisitNodeInternal(child);
+				VisitNodeInternal(child, *listToUse);
 			}
-			sortedList.push_back(n);
+			
+			listToUse->push_back(n);
 			visitedNodes.insert(n);
 		}
 	}
@@ -711,12 +723,21 @@ namespace sb
 	{
 		std::stringstream ss;
 
-		IndentGuard ig(this);
-
-		for (nodePtr n : sortedList)
+		for (nodePtr n : ioVariablesList)
 		{
 			ss << Emit(n);
 		}
+
+		ss << "\nvoid main(void)\n{\n";
+		{
+			IndentGuard ig(this);
+
+			for (nodePtr n : mainBlockList)
+			{
+				ss << Emit(n);
+			}
+		}
+		ss << "}\n";
 
 		return ss.str();
 	}
