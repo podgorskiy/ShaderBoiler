@@ -322,7 +322,7 @@ namespace sb
 		result.src->optype = node::##E; \
 		result.src->childs.push_back(a.src); \
 		result.src->childs.push_back(b.src); \
-		a = result; \
+		a.src = result.src; \
 		return a; \
 	}
 
