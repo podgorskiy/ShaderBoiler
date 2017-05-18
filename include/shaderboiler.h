@@ -103,7 +103,7 @@ namespace sb
 			io_attribute,
 			io_varying,
 
-			predefined = io_bit << 1,
+			predefined_bit = io_bit << 1,
 			predefined_const,
 			predefined_output,
 		};
@@ -863,6 +863,11 @@ namespace sb
 
 	inline std::string context::Emit(nodePtr n)
 	{
+		if (node::predefined_bit & n->optype)
+		{
+			return "";
+		}
+
 		std::stringstream ss;
 
 		for (int i = 0; i < indent; ++i)
