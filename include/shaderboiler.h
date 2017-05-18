@@ -24,14 +24,6 @@
 
 namespace sb
 {
-	enum Type
-	{
-		variable = 0,
-		in,
-		out,
-		uniform,
-	};
-
 	class node;
 
 	typedef std::shared_ptr<node>nodePtr;
@@ -60,6 +52,7 @@ namespace sb
 
 		enum OpType
 		{
+			uninitialised,
 			floatConstant,
 			integerConstant,
 			unsignedIntegerConstant,
@@ -163,7 +156,7 @@ namespace sb
 			name = other->name;
 		}
 
-		OpType optype;
+		OpType optype = uninitialised;
 		std::vector<nodePtr> childs;
 		std::string name;
 		Data data[16];
@@ -175,37 +168,47 @@ namespace sb
 		int id = -1;
 	};
 
+	struct nodeshell;
+
+	typedef std::weak_ptr<nodeshell> nodeshellWeakPtr;
+	typedef std::shared_ptr<nodeshell> nodeshellPtr;
+
+	struct nodeshell
+	{
+		nodeshell(nodePtr n) : n(n)
+		{}
+
+		nodePtr n;
+	};
+
 	template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
 	class basevar
 	{
 	public:
-		basevar(Type t)
+		basevar()
 		{
-			Init(t);
+			Init();
 		}
-		basevar(Type t, const std::string& name)
+
+		basevar(const std::string& name)
 		{
-			Init(t);
+			Init();
 			src->name = name;
 		}
 
-		void SetName(const std::string& name)
-		{
-			src->name = name;
-		}
-
+		// Pointer to a node in compute graph
 		nodePtr src;
+
+		// This pointer is not null only for output variables. 
+		// It is a pointer to the record (which is a pointer to the node) inside the context, which is used to notify context if the variable was modified. 
+		nodeshellWeakPtr shell;
 	private:
-		void Init(Type t)
+		void Init()
 		{
 			src = nodePtr(new node());
 			src->datatype = T;
 			src->datasize = S;
 			src->datasize_secondary = S2;
-			if (t != variable)
-			{
-				src->optype = static_cast<node::OpType>(t + node::io_bit);
-			}
 		}
 	};
 
@@ -304,7 +307,7 @@ namespace sb
 	/* Binary operator, like T3 a = T1() * T2(); */ \
 	/* Outside class definition */ \
 	T3 operator X (const T1& a, const T2& b) { \
-		T3 result(Type::variable); \
+		T3 result; \
 		result.src->optype = node::##E; \
 		result.src->childs.push_back(a.src); \
 		result.src->childs.push_back(b.src); \
@@ -315,11 +318,14 @@ namespace sb
 	/* Assign operator, like T1 a; a += T2(); */ \
 	/* Outside class definition */ \
 	T1 operator X (T1&a, const T2& b) { \
-		T1 result(Type::variable); \
+		T1 result; \
 		result.src->optype = node::##E; \
 		result.src->childs.push_back(a.src); \
 		result.src->childs.push_back(b.src); \
 		a.src = result.src; \
+		if (!a.shell.expired()) { \
+			a.shell.lock()->n = a.src; \
+		} \
 		return a; \
 	}
 
@@ -330,7 +336,7 @@ namespace sb
 		bool io_node = (src->optype & node::io_bit) != 0; \
 		bool io_assign_node = (src->childs.size() > 0) && (src->childs[0]->optype & node::io_bit) != 0; \
 		if (io_node || io_assign_node) {\
-			T1##S result(Type::variable); \
+			T1##S result; \
 			nodePtr oldsrc; \
 			if (io_assign_node) {\
 				oldsrc = src->childs[0]; \
@@ -341,6 +347,9 @@ namespace sb
 			src->optype = node::assign; \
 			src->childs.push_back(oldsrc); \
 			src->childs.push_back(x.src); \
+			if (!shell.expired()) { \
+				shell.lock()->n = src; \
+			} \
 			return *this; \
 		} else { \
 			src = x.src; \
@@ -392,21 +401,21 @@ namespace sb
 
 #define type_cast_from(T, T_from, S) \
 		/* Casts from type T_from to T, element-wise */ \
-		explicit T##S(const T_from##S& f) : basevar(Type::variable) { \
+		explicit T##S(const T_from##S& f) { \
 			src->optype = node::cast; \
 			src->childs.push_back(GetPtr(&f)); \
 		};
 
 #define cast_from_scalar(T, S) \
 		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
-		explicit T##S(T##1 f) : basevar(Type::variable) { \
+		explicit T##S(T##1 f) { \
 			src->optype = node::cast; \
 			src->childs.push_back(f.src); \
 		};
 
 #define cast_from_vec_and_vec(T, S, V1, V2) \
 		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
-		explicit T##S(T##V1 v1, T##V2 v2) : basevar(Type::variable) { \
+		explicit T##S(T##V1 v1, T##V2 v2) { \
 			src->optype = node::cast; \
 			src->childs.push_back(v1.src); \
 			src->childs.push_back(v2.src); \
@@ -414,7 +423,7 @@ namespace sb
 
 #define cast_from_vec_and_vec_and_vec(T, S, V1, V2, V3) \
 		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
-		explicit T##S(T##V1 v1, T##V2 v2, T##V3 v3) : basevar(Type::variable) { \
+		explicit T##S(T##V1 v1, T##V2 v2, T##V3 v3) { \
 			src->optype = node::cast; \
 			src->childs.push_back(v1.src); \
 			src->childs.push_back(v2.src); \
@@ -423,28 +432,29 @@ namespace sb
 
 #define drop_cast(T, S, V) \
 		/* Initializes each component of the vec<S> with the one argument of vec1 type */ \
-		explicit T##S(const T##V& v) : basevar(Type::variable) { \
+		explicit T##S(const T##V& v) { \
 			src->optype = node::cast; \
 			src->childs.push_back(GetPtr(&v)); \
 		};
 
 #define cast_from_const_literal_scalar(T, S) \
 		/* Initializes each component of the vec<S> with the one argument of POD type*/ \
-		explicit T##S(plane_types::##T f) : basevar(Type::variable) {\
+		explicit T##S(plane_types::##T f) {\
 			REPEAT_ASSIGNMENT(src->data[, ].d_##T, f, S); \
 			src->optype = node::OpType::o##T; \
 		};
 
 #define main_constructor(T, S) \
 		/* Initializes each component of the vec<S> with the S arguments of POD type*/ \
-		T##S(REPEAT_WITH_ID_AND_COMMA(plane_types::##T f, S)) : basevar(Type::variable) \
+		T##S(REPEAT_WITH_ID_AND_COMMA(plane_types::##T f, S)) \
 		{ \
 			REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##T, f, S); \
 			src->optype = node::OpType::o##T; \
 		};
 
 #define default_constructors(T, S) \
-		T##S(Type t, const std::string& name) : basevar(t, name) {}; \
+		T##S() {}; \
+		T##S(const std::string& name) : basevar(name) {}; \
 		T##S& SetName(const std::string& name) { \
 			src->name = name; \
 			return *this; \
@@ -464,7 +474,7 @@ namespace sb
 		type_cast(T, 1); \
 		simple_assignop(T, T, 1); \
 		/* Constructor from one argument of POD type*/ \
-		T##1(plane_types::##T f0) : basevar(Type::variable) { src->data[0].d_##T = f0; src->optype = node::OpType::o##T; }; \
+		T##1(plane_types::##T f0) { src->data[0].d_##T = f0; src->optype = node::OpType::o##T; }; \
 	};
 
 #define class_vec_def_size2(T) \
@@ -517,9 +527,9 @@ namespace sb
 #define class_mat_def_(T, PT, M, N, MbyN) \
 	class T##M##x##N: public basevar<node::DataType::##T, node::DataSize(M), node::DataSize(N)>{ \
 	public: \
-		T##M##x##N(Type t) : basevar(t) {}; \
-		T##M##x##N(plane_types::##PT f) : basevar(Type::variable) { REPEAT_ASSIGNMENT(src->data[(N + 1) *, ].d_##PT, f, M); src->optype = node::OpType::o##PT; }; \
-		T##M##x##N(REPEAT_WITH_ID_AND_COMMA(plane_types::##PT f, MbyN)) : basevar(Type::variable) { REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##PT, f, MbyN); src->optype = node::OpType::o##PT; }; \
+		T##M##x##N() {}; \
+		T##M##x##N(plane_types::##PT f) { REPEAT_ASSIGNMENT(src->data[(N + 1) *, ].d_##PT, f, M); src->optype = node::OpType::o##PT; }; \
+		T##M##x##N(REPEAT_WITH_ID_AND_COMMA(plane_types::##PT f, MbyN)) { REPEAT_ASSIGNMENT_WITH_ID(src->data[, ].d_##PT, f, MbyN); src->optype = node::OpType::o##PT; }; \
 	};
 #define class_mat_def(T, PT, M, N) class_mat_def_(T, PT, M, N, MULL(M, N))
 
@@ -612,7 +622,7 @@ namespace sb
 
 	bvec1 operator<(const vec1& a, const vec1& b)
 	{
-		return bvec1(variable);
+		return bvec1();
 	}
 
 #undef binop
@@ -629,8 +639,53 @@ namespace sb
 	class context
 	{
 	public:
-		void VisitNode(nodePtr n);
-		std::string GenerateCode();
+		std::string genShader();
+
+		template<typename T>
+		T uniform(const std::string& name)
+		{
+			T v(name);
+			v.src->optype = node::io_uniform;
+			return v;
+		}
+
+		template<typename T>
+		T in(const std::string& name)
+		{
+			T v(name);
+			v.src->optype = node::io_input;
+			return v;
+		}
+
+		template<typename T>
+		T out(const std::string& name)
+		{
+			T v(name);
+			v.src->optype = node::io_output;
+			nodeshellPtr shell(new nodeshell(v.src));
+			v.shell = shell;
+			targetList.push_back(shell);
+			return v;
+		}
+
+		template<typename T>
+		T varying(const std::string& name)
+		{
+			T v(name);
+			v.src->optype = node::io_varying;
+			nodeshellPtr shell(new nodeshell(v.src));
+			v.shell = shell;
+			targetList.push_back(shell);
+			return v;
+		}
+
+		template<typename T>
+		T attribute(const std::string& name)
+		{
+			T v(name);
+			v.src->optype = node::io_attribute;
+			return v;
+		}
 
 	private:
 		class IndentGuard
@@ -640,8 +695,11 @@ namespace sb
 			~IndentGuard() { --p; };
 		private:
 			int p;
-		}; 
+		};
 
+		std::string GenerateCode();
+
+		void VisitNode(nodePtr n);
 		void VisitNodeInternal(nodePtr n, std::list<nodePtr>& defaultList);
 
 		std::string Emit(nodePtr n);
@@ -654,6 +712,7 @@ namespace sb
 		template<typename T>
 		static T Get(node::Data* d, int i);
 
+		std::list<nodeshellPtr> targetList;
 		std::list<nodePtr> ioVariablesList;
 		std::list<std::list<nodePtr> > listOffunctionNodesList;
 		std::list<nodePtr> mainBlockList;
@@ -661,6 +720,16 @@ namespace sb
 		int id = 0;
 		int indent = 0;
 	};
+
+	inline std::string context::genShader()
+	{
+		// Visiting the target forest
+		for (std::list<nodeshellPtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
+		{
+			VisitNode((*it)->n);
+		}
+		return GenerateCode();
+	}
 
 	template<>
 	inline float context::Get<float>(node::Data* d, int i)
@@ -1009,14 +1078,6 @@ namespace sb
 		return ss.str();
 	}
 	
-	template<typename T>
-	inline std::string genShader(T v)
-	{
-		context ctx;
-		ctx.VisitNode(v.src);
-		return ctx.GenerateCode();
-	}
-
 	inline std::string context::GetType(nodePtr n)
 	{
 		std::string size;
