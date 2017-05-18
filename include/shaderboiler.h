@@ -102,6 +102,10 @@ namespace sb
 			io_uniform,
 			io_attribute,
 			io_varying,
+
+			predefined = io_bit << 1,
+			predefined_const,
+			predefined_output,
 		};
 		
 		union Data
@@ -194,6 +198,13 @@ namespace sb
 		{
 			Init();
 			src->name = name;
+		}
+
+		basevar(const std::string& name, node::OpType t)
+		{
+			Init();
+			src->name = name;
+			src->optype = t;
 		}
 
 		// Pointer to a node in compute graph
@@ -455,6 +466,7 @@ namespace sb
 #define default_constructors(T, S) \
 		T##S() {}; \
 		T##S(const std::string& name) : basevar(name) {}; \
+		T##S(const std::string& name, node::OpType t) : basevar(name, t) {}; \
 		T##S& SetName(const std::string& name) { \
 			src->name = name; \
 			return *this; \
@@ -1126,4 +1138,89 @@ namespace sb
 		}
 		return "void";
 	}
+
+#define define_constant(T, X) static T X(#X, node::predefined_const)
+
+	define_constant(ivec1, gl_MaxVertexAttribs);
+	define_constant(ivec1, gl_MaxVertexOutputComponents);
+	define_constant(ivec1, gl_MaxVertexUniformComponents);
+	define_constant(ivec1, gl_MaxVertexTextureImageUnits);
+	define_constant(ivec1, gl_MaxGeometryInputComponents);
+	define_constant(ivec1, gl_MaxGeometryOutputComponents);
+	define_constant(ivec1, gl_MaxGeometryUniformComponents);
+	define_constant(ivec1, gl_MaxGeometryTextureImageUnits);
+	define_constant(ivec1, gl_MaxGeometryOutputVertices);
+	define_constant(ivec1, gl_MaxGeometryTotalOutputComponents);
+	define_constant(ivec1, gl_MaxGeometryVaryingComponents);
+	define_constant(ivec1, gl_MaxFragmentInputComponents);
+	define_constant(ivec1, gl_MaxDrawBuffers);
+	define_constant(ivec1, gl_MaxFragmentUniformComponents);
+	define_constant(ivec1, gl_MaxTextureImageUnits1);
+	define_constant(ivec1, gl_MaxClipDistances);
+	define_constant(ivec1, gl_MaxCombinedTextureImageUnits);
+
+	// Requires OpenGL 4.0
+
+	define_constant(ivec1, gl_MaxTessControlInputComponents);
+	define_constant(ivec1, gl_MaxTessControlOutputComponents);
+	define_constant(ivec1, gl_MaxTessControlUniformComponents);
+	define_constant(ivec1, gl_MaxTessControlTextureImageUnits);
+	define_constant(ivec1, gl_MaxTessControlTotalOutputComponents);
+	define_constant(ivec1, gl_MaxTessEvaluationInputComponents);
+	define_constant(ivec1, gl_MaxTessEvaluationOutputComponents);
+	define_constant(ivec1, gl_MaxTessEvaluationUniformComponents);
+	define_constant(ivec1, gl_MaxTessEvaluationTextureImageUnits);
+	define_constant(ivec1, gl_MaxTessPatchComponents);
+	define_constant(ivec1, gl_MaxPatchVertices);
+	define_constant(ivec1, gl_MaxTessGenLevel);
+
+	// Requires OpenGL 4.1
+
+	define_constant(ivec1, gl_MaxViewports);
+	define_constant(ivec1, gl_MaxVertexUniformVectors);
+	define_constant(ivec1, gl_MaxFragmentUniformVectors);
+	define_constant(ivec1, gl_MaxVaryingVectors);
+
+	// Requires OpenGL 4.2
+
+	define_constant(ivec1, gl_MaxVertexImageUniforms);
+	define_constant(ivec1, gl_MaxVertexAtomicCounters);
+	define_constant(ivec1, gl_MaxVertexAtomicCounterBuffers);
+	define_constant(ivec1, gl_MaxTessControlImageUniforms);
+	define_constant(ivec1, gl_MaxTessControlAtomicCounters);
+	define_constant(ivec1, gl_MaxTessControlAtomicCounterBuffers);
+	define_constant(ivec1, gl_MaxTessEvaluationImageUniforms);
+	define_constant(ivec1, gl_MaxTessEvaluationAtomicCounters);
+	define_constant(ivec1, gl_MaxTessEvaluationAtomicCounterBuffers);
+	define_constant(ivec1, gl_MaxGeometryImageUniforms);
+	define_constant(ivec1, gl_MaxGeometryAtomicCounters);
+	define_constant(ivec1, gl_MaxGeometryAtomicCounterBuffers);
+	define_constant(ivec1, gl_MaxFragmentImageUniforms);
+	define_constant(ivec1, gl_MaxFragmentAtomicCounters);
+	define_constant(ivec1, gl_MaxFragmentAtomicCounterBuffers);
+	define_constant(ivec1, gl_MaxCombinedImageUniforms);
+	define_constant(ivec1, gl_MaxCombinedAtomicCounters);
+	define_constant(ivec1, gl_MaxCombinedAtomicCounterBuffers);
+	define_constant(ivec1, gl_MaxImageUnits);
+	define_constant(ivec1, gl_MaxCombinedImageUnitsAndFragmentOutputs);
+	define_constant(ivec1, gl_MaxImageSamples);
+	define_constant(ivec1, gl_MaxAtomicCounterBindings);
+	define_constant(ivec1, gl_MaxAtomicCounterBufferSize);
+	define_constant(ivec1, gl_MinProgramTexelOffset);
+	define_constant(ivec1, gl_MaxProgramTexelOffset);
+
+	// Requires OpenGL 4.3
+
+	define_constant(ivec3, gl_MaxComputeWorkGroupCount);
+	define_constant(ivec3, gl_MaxComputeWorkGroupSize);
+	define_constant(ivec1, gl_MaxComputeUniformComponents);
+	define_constant(ivec1, gl_MaxComputeTextureImageUnits);
+	define_constant(ivec1, gl_MaxComputeImageUniforms);
+	define_constant(ivec1, gl_MaxComputeAtomicCounters);
+	define_constant(ivec1, gl_MaxComputeAtomicCounterBuffers);
+
+	// Requires OpenGL 4.4
+
+	define_constant(ivec1, gl_MaxTransformFeedbackBuffers);
+	define_constant(ivec1, gl_MaxTransformFeedbackInterleavedComponents);
 }
