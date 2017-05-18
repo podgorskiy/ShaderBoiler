@@ -276,14 +276,16 @@ namespace sb
 #define MULL43 12
 #define MULL44 16
 
+	// Free function to access node from pointer to variable object. 
+	// Needed to work objects of with declarated, but not defined classes derivated from basevar
 	template<typename T>
-	nodePtr GetPtr(T* x)
+	inline nodePtr GetPtr(T* x)
 	{
 		return x->src;
 	}
 
-
 #define binop(T1, T2, T3, X, E)\
+	/* Binary operator, like T3 a = T1() * T2(); */ \
 	T3 operator X (const T1& a, const T2& b) { \
 		T3 result(Type::variable); \
 		result.src->optype = node::##E; \
@@ -293,6 +295,7 @@ namespace sb
 	}
 
 #define assignop(T1, T2, X, E)\
+	/* Assign operator, like T1 a; a += T2(); */ \
 	T1 operator X (T1&a, const T2& b) { \
 		T1 result(Type::variable); \
 		result.src->optype = node::##E; \
@@ -336,6 +339,7 @@ namespace sb
 	assignop(T1, T2, |=, assign_or); \
 	assignop(T1, T2, ^=, assign_xor);
 
+// Sets collection of typecast operators to T type
 #define type_cast(T, S) type_cast_to_##T(S)
 
 #define type_cast_to_vec(S) type_cast_from(vec, uvec, S) type_cast_from(vec, ivec, S) type_cast_from(vec, bvec, S)
@@ -484,11 +488,18 @@ namespace sb
 	class_vec_def_size3(T) \
 	class_vec_def_size4(T)
 
+/* Class declaration section.
+ * Declarations needed for drop cast operators, like vec2(vec4(1.0))
+ */
 	class_vec_dec(vec);
 	class_vec_dec(ivec);
 	class_vec_dec(uvec);
 	class_vec_dec(bvec);
 
+/* Class definition section.
+ * Actual definitions of classes, with all member operator functions are here
+ * Memeber operator functions are mostly casts.
+ */
 	class_vec_def(vec);
 	class_vec_def(ivec);
 	class_vec_def(uvec);
@@ -516,6 +527,10 @@ namespace sb
 	assigop_ariphm(ivec##S1, ivec##S2) \
 	assigop_ariphm(uvec##S1, uvec##S2)
 
+/* Non-member operator functions section
+ * Actual definitions of classes, with all member operator functions are here
+ * Non-memeber operator functions are the majority of operators, including binary operators.
+ */
 	op_ariphm_allvecTypes(1, 1, 1);
 	op_ariphm_allvecTypes(2, 2, 2);
 	op_ariphm_allvecTypes(3, 3, 3);
