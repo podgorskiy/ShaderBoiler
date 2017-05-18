@@ -26,9 +26,10 @@ namespace sb
 {
 	enum Type
 	{
-		variable,
+		variable = 0,
 		in,
-		out
+		out,
+		uniform,
 	};
 
 	class node;
@@ -201,13 +202,9 @@ namespace sb
 			src->datatype = T;
 			src->datasize = S;
 			src->datasize_secondary = S2;
-			if (t == in)
+			if (t != variable)
 			{
-				src->optype = node::io_input;
-			}
-			else if (t == out)
-			{
-				src->optype = node::io_output;
+				src->optype = static_cast<node::OpType>(t + node::io_bit);
 			}
 		}
 	};
