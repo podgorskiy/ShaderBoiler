@@ -1144,7 +1144,7 @@ namespace sb
 		return "void";
 	}
 
-#define define_constant(T, X) static T X(#X, node::predefined_const)
+#define define_constant(T, X) static const T X(#X, node::predefined_const)
 
 	define_constant(ivec1, gl_MaxVertexAttribs);
 	define_constant(ivec1, gl_MaxVertexOutputComponents);
