@@ -76,6 +76,7 @@ namespace sb
 			obvec = booleanConstant,
 
 			assign_bit = 0x1000,
+			assign,
 			assign_addition,
 			assign_substruction,
 			assign_multiplication,
@@ -190,6 +191,10 @@ namespace sb
 			{
 				src->optype = node::io_input;
 			}
+			else if (t == out)
+			{
+				src->optype = node::io_output;
+			}
 		}
 	};
 
@@ -286,6 +291,7 @@ namespace sb
 
 #define binop(T1, T2, T3, X, E)\
 	/* Binary operator, like T3 a = T1() * T2(); */ \
+	/* Outside class definition */ \
 	T3 operator X (const T1& a, const T2& b) { \
 		T3 result(Type::variable); \
 		result.src->optype = node::##E; \
@@ -296,6 +302,7 @@ namespace sb
 
 #define assignop(T1, T2, X, E)\
 	/* Assign operator, like T1 a; a += T2(); */ \
+	/* Outside class definition */ \
 	T1 operator X (T1&a, const T2& b) { \
 		T1 result(Type::variable); \
 		result.src->optype = node::##E; \
@@ -303,6 +310,31 @@ namespace sb
 		result.src->childs.push_back(b.src); \
 		a = result; \
 		return a; \
+	}
+
+#define simple_assignop(T1, T2, S)\
+	/* Assign operator, like T1 a; a = T2(); Not trivial for input-output variables */ \
+	/* Inside class definition */ \
+	T1##S operator = (const T2##S& x) { \
+		bool io_node = src->optype & node::io_bit; \
+		bool io_assign_node = (src->childs.size() > 0) && (src->childs[0]->optype & node::io_bit); \
+		if (io_node || io_assign_node) {\
+			T1##S result(Type::variable); \
+			nodePtr oldsrc; \
+			if (io_assign_node) {\
+				oldsrc = src->childs[0]; \
+			} else {\
+				oldsrc = src; \
+			} \
+			src = result.src; \
+			src->optype = node::assign; \
+			src->childs.push_back(oldsrc); \
+			src->childs.push_back(x.src); \
+			return *this; \
+		} else { \
+			src = x.src; \
+			return *this; \
+		} \
 	}
 
 #define op_ariphm(T1, T2, T3)\
@@ -419,6 +451,7 @@ namespace sb
 		drop_cast(T, 1, 3); \
 		drop_cast(T, 1, 2); \
 		type_cast(T, 1); \
+		simple_assignop(T, T, 1); \
 		/* Constructor from one argument of POD type*/ \
 		T##1(plane_types::##T f0) : basevar(Type::variable) { src->data[0].d_##T = f0; src->optype = node::OpType::o##T; }; \
 	};
@@ -433,6 +466,7 @@ namespace sb
 		drop_cast(T, 2, 3); \
 		main_constructor(T, 2); \
 		type_cast(T, 2); \
+		simple_assignop(T, T, 2); \
 		cast_from_const_literal_scalar(T, 2); \
 	};
 
@@ -446,6 +480,7 @@ namespace sb
 		cast_from_vec_and_vec(T, 3, 1, 2); \
 		drop_cast(T, 3, 4); \
 		type_cast(T, 3); \
+		simple_assignop(T, T, 3); \
 		main_constructor(T, 3); \
 		cast_from_const_literal_scalar(T, 3); \
 	};
@@ -463,6 +498,7 @@ namespace sb
 		cast_from_vec_and_vec_and_vec(T, 4, 1, 2, 1); \
 		cast_from_vec_and_vec_and_vec(T, 4, 2, 1, 1); \
 		type_cast(T, 4); \
+		simple_assignop(T, T, 4); \
 		main_constructor(T, 4); \
 		cast_from_const_literal_scalar(T, 4); \
 	};
@@ -727,6 +763,11 @@ namespace sb
 
 			switch (n->optype)
 			{
+			case node::assign:
+			{
+				ss << " = " << n->childs[1]->GetId();
+			}
+			break;
 			case node::assign_addition:
 			{
 				ss << " += " << n->childs[1]->GetId();
