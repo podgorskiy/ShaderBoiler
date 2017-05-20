@@ -4,18 +4,18 @@
 void main()
 {
 	using namespace sb;
+	using namespace sb::gl440;
 
 	{
-		std::cout << "\n" << "Test2" << "\n";
-
 		context ctx;
 		vec4 AmbientColor           = ctx.uniform<vec4>("AmbientColor");
 		vec3 normal                 = ctx.in<vec3>("normal");
 		vec3 vertex_to_light_vector = ctx.in<vec3>("vertex_to_light_vector");
-		vec4 color                  = ctx.out<vec4>("color");
 
 		// Defining The Material Colors
 		const vec4 DiffuseColor = vec4(1.0, 0.0, 0.0, 1.0).SetName("DiffuseColor");
+
+		ivec1 a = gl_MaxProgramTexelOffset;
 
 		// Scaling The Input Vector To Length 1
 		//vec3 normalized_normal = normalize(normal);
@@ -24,11 +24,10 @@ void main()
 		vec3 normalized_vertex_to_light_vector = vertex_to_light_vector * 2;
 
 		// Calculating The Diffuse Term And Clamping It To [0;1]
-		//float DiffuseTerm = clamp(dot(normal, vertex_to_light_vector), 0.0, 1.0);
-		Float DiffuseTerm = Float(normal * normalized_vertex_to_light_vector).SetName("DiffuseTerm");
+		Float DiffuseTerm = max(dot(normal, vertex_to_light_vector), 0.0).SetName("DiffuseTerm");
 
 		// Calculating The Final Color
-		color += (AmbientColor + DiffuseColor * DiffuseTerm);
+		ctx[fs::gl_FragColor] = AmbientColor + DiffuseColor * DiffuseTerm;
 
 		std::cout << ctx.genShader();
 	}
