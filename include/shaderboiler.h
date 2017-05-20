@@ -1780,7 +1780,6 @@ namespace sb
 		define_constant(ivec1, gl_MaxCombinedClipAndCullDistances);
 		define_constant(ivec1, gl_MaxSamples);
 		define_constant(ivec1, gl_MaxCombinedShaderOutputResources);
-		define_constant(ivec1, gl_MaxCombinedShaderOutputResources);
 	}
 
 	// gl130 is taken as default
