@@ -775,6 +775,22 @@ namespace sb
 #undef op_bitop
 #undef op_shifts
 
+	template<typename T>
+	class larva
+	{
+	public:
+		larva(const std::string& name): name(name)
+		{}
+
+		operator T() const
+		{
+			T x(name, node::predefined_output);
+			return x;
+		}
+	private:
+		std::string name;
+	};
+
 	class context
 	{
 	public:
@@ -826,42 +842,12 @@ namespace sb
 			return v;
 		}
 
-		// Various outputs
-		vec4 gl_Position; //vs 1.3 gs 1.5
-		vec1 gl_PointSize; //vs 1.3 gs 1.5
-		// out float gl_ClipDistance[]; //vs 1.3
-		// float gl_CullDistance[];  //vs 4.5
-
-
-		ivec1 gl_PrimitiveID; // gs 1.5
-		ivec1 gl_Layer; // gs 1.5
-		ivec1 gl_ViewportIndex; // gs 4.1
-
-		vec1 gl_FragDepth; // fs 1.3
-		vec4 gl_FragColor; // fs 1.3
-		// out int gl_SampleMask[]; // fs 4.0
-		
-		//out vec4 gl_FragData[gl_MaxDrawBuffers]; // fs 1.3
-		//patch out float gl_TessLevelOuter[4]; // gs 4.0
-		//patch out float gl_TessLevelInner[2]; // gs 4.0
-
-		context()
+		template<typename T>
+		T operator [] (const larva<T>& l)
 		{
-			gl_Position = vec4("gl_Position", node::predefined_output);
-			gl_PointSize = vec1("gl_PointSize", node::predefined_output);
-			gl_PrimitiveID = ivec1("gl_PrimitiveID", node::predefined_output);
-			gl_Layer = ivec1("gl_Layer", node::predefined_output);
-			gl_ViewportIndex = ivec1("gl_ViewportIndex", node::predefined_output);
-			gl_FragDepth = vec1("gl_FragDepth", node::predefined_output);
-			gl_FragColor = vec4("gl_FragColor", node::predefined_output);
-			
-			Register(gl_Position);
-			Register(gl_PointSize);
-			Register(gl_PrimitiveID);
-			Register(gl_Layer);
-			Register(gl_ViewportIndex);
-			Register(gl_FragDepth);
-			Register(gl_FragColor);
+			T result = l;
+			Register(result);
+			return result;
 		}
 
 	private:
@@ -1320,8 +1306,9 @@ namespace sb
 		}
 		return "void";
 	}
-		
+
 #define define_constant(T, X) static const T X(#X, node::predefined_const)
+#define define_output(T, X) static const larva<T> X(#X)
 
 	// Inputs
 
@@ -1359,6 +1346,9 @@ namespace sb
 		namespace gl130
 		{
 			define_constant(ivec1, gl_VertexID);
+			define_output(vec4, gl_Position);
+			define_output(vec1, gl_PointSize);
+			// out float gl_ClipDistance[]; //vs 1.3
 		}
 
 		// Requires OpenGL 3.1
@@ -1414,6 +1404,7 @@ namespace sb
 		namespace gl450
 		{
 			using namespace gl440;
+			// float gl_CullDistance[];  //vs 4.5
 		}
 
 		// gl130 is taken as default
@@ -1426,10 +1417,12 @@ namespace sb
 		// Requires OpenGL 3.2
 		namespace gl150
 		{
-			//define_constant(vec4, gl_Position); TODO ARRAYS
-			//define_constant(vec1, gl_PointSize); TODO ARRAYS
+			//define_output(vec4, gl_Position); TODO ARRAYS
+			//define_output(vec1, gl_PointSize); TODO ARRAYS
 			//define_constant(vec1, gl_ClipDistance[]; ); TODO ARRAYS
 			define_constant(ivec1, gl_PrimitiveIDIn);
+			define_output(ivec1, gl_PrimitiveID);
+			define_output(ivec1, gl_Layer);
 		}
 
 		// Requires OpenGL 3.3
@@ -1443,12 +1436,15 @@ namespace sb
 		{
 			using namespace gl330;
 			define_constant(ivec1, gl_InvocationID);
+			// patch out float gl_TessLevelOuter[4]; // gs 4.0
+			// patch out float gl_TessLevelInner[2]; // gs 4.0
 		}
 
 		// Requires OpenGL 4.1
 		namespace gl410
 		{
 			using namespace gl400;
+			define_output(ivec1, gl_ViewportIndex);
 		}
 
 		// Requires OpenGL 4.2
@@ -1578,6 +1574,9 @@ namespace sb
 		{
 			define_constant(vec4, gl_FragCoord);
 			define_constant(bvec1, gl_FrontFacing);
+			define_output(vec1, gl_FragDepth);
+			define_output(vec4, gl_FragColor);
+			// out vec4 gl_FragData[gl_MaxDrawBuffers]; // fs 1.3
 			//in float gl_ClipDistance[];
 		}
 
@@ -1607,6 +1606,7 @@ namespace sb
 			using namespace gl330;
 			define_constant(ivec1, gl_SampleID);
 			define_constant(vec2, gl_SamplePosition);
+			// out int gl_SampleMask[]; // fs 4.0
 		}
 
 		// Requires OpenGL 4.1
