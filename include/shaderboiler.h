@@ -827,13 +827,23 @@ namespace sb
 		}
 
 		// Various outputs
-		vec4 gl_Position;
-		vec1 gl_PointSize;
-		ivec1 gl_PrimitiveID;
-		ivec1 gl_Layer;
-		ivec1 gl_ViewportIndex;
-		vec1 gl_FragDepth;
-		vec4 gl_FragColor;
+		vec4 gl_Position; //vs 1.3 gs 1.5
+		vec1 gl_PointSize; //vs 1.3 gs 1.5
+		// out float gl_ClipDistance[]; //vs 1.3
+		// float gl_CullDistance[];  //vs 4.5
+
+
+		ivec1 gl_PrimitiveID; // gs 1.5
+		ivec1 gl_Layer; // gs 1.5
+		ivec1 gl_ViewportIndex; // gs 4.1
+
+		vec1 gl_FragDepth; // fs 1.3
+		vec4 gl_FragColor; // fs 1.3
+		// out int gl_SampleMask[]; // fs 4.0
+		
+		//out vec4 gl_FragData[gl_MaxDrawBuffers]; // fs 1.3
+		//patch out float gl_TessLevelOuter[4]; // gs 4.0
+		//patch out float gl_TessLevelInner[2]; // gs 4.0
 
 		context()
 		{
@@ -844,7 +854,7 @@ namespace sb
 			gl_ViewportIndex = ivec1("gl_ViewportIndex", node::predefined_output);
 			gl_FragDepth = vec1("gl_FragDepth", node::predefined_output);
 			gl_FragColor = vec4("gl_FragColor", node::predefined_output);
-
+			
 			Register(gl_Position);
 			Register(gl_PointSize);
 			Register(gl_PrimitiveID);
@@ -1313,110 +1323,466 @@ namespace sb
 		
 #define define_constant(T, X) static const T X(#X, node::predefined_const)
 
-	// Various inputs
-	define_constant(vec4, gl_FragCoord);
-	define_constant(bvec1, gl_FrontFacing);
-	define_constant(vec2, gl_PointCoord);
-	define_constant(ivec1, gl_VertexID);
-	define_constant(ivec1, gl_InstanceID);
-	define_constant(ivec1, gl_PatchVerticesIn);
-	define_constant(ivec1, gl_PrimitiveID);
-	define_constant(ivec1, gl_PrimitiveIDIn);
-	define_constant(ivec1, gl_InvocationID);
-	define_constant(vec3, gl_TessCoord);
-	define_constant(ivec1, gl_SampleID);
-	define_constant(vec2, gl_SamplePosition);
-	define_constant(ivec1, gl_Layer);
-	define_constant(ivec1, gl_ViewportIndex);
-	define_constant(uvec3, gl_NumWorkGroups);
-	define_constant(uvec3, gl_WorkGroupID);
-	define_constant(uvec3, gl_LocalInvocationID);
-	define_constant(uvec3, gl_GlobalInvocationID);
-	define_constant(uvec1, gl_LocalInvocationIndex);
+	// Inputs
+
+	// Compute shader
+	namespace cs
+	{
+		// Requires OpenGL 4.3
+		namespace gl430
+		{
+			define_constant(uvec3, gl_NumWorkGroups);
+			define_constant(uvec3, gl_WorkGroupSize);
+			define_constant(uvec3, gl_WorkGroupID);
+			define_constant(uvec3, gl_LocalInvocationID);
+			define_constant(uvec3, gl_GlobalInvocationID);
+			define_constant(uvec1, gl_LocalInvocationIndex);
+		}
+
+		// Requires OpenGL 4.4
+		namespace gl440
+		{
+			using namespace gl430;
+		}
+
+		// Requires OpenGL 4.5
+		namespace gl450
+		{
+			using namespace gl440;
+		}
+	}
+
+	// Vertex shader
+	namespace vs
+	{
+		// Requires OpenGL 3.0
+		namespace gl130
+		{
+			define_constant(ivec1, gl_VertexID);
+		}
+
+		// Requires OpenGL 3.1
+		namespace gl140
+		{
+			using namespace gl130;
+			define_constant(ivec1, gl_InstanceID);
+		}
+
+		// Requires OpenGL 3.2
+		namespace gl150
+		{
+			using namespace gl140;
+		}
+
+		// Requires OpenGL 3.3
+		namespace gl330
+		{
+			using namespace gl150;
+		}
+
+		// Requires OpenGL 4.0
+		namespace gl400
+		{
+			using namespace gl330;
+		}
+
+		// Requires OpenGL 4.1
+		namespace gl410
+		{
+			using namespace gl400;
+		}
+
+		// Requires OpenGL 4.2
+		namespace gl420
+		{
+			using namespace gl410;
+		}
+
+		// Requires OpenGL 4.3
+		namespace gl430
+		{
+			using namespace gl420;
+		}
+
+		// Requires OpenGL 4.4
+		namespace gl440
+		{
+			using namespace gl430;
+		}
+
+		// Requires OpenGL 4.5
+		namespace gl450
+		{
+			using namespace gl440;
+		}
+
+		// gl130 is taken as default
+		using namespace gl130;
+	}
+
+	// Geometry shader
+	namespace gs
+	{
+		// Requires OpenGL 3.2
+		namespace gl150
+		{
+			//define_constant(vec4, gl_Position); TODO ARRAYS
+			//define_constant(vec1, gl_PointSize); TODO ARRAYS
+			//define_constant(vec1, gl_ClipDistance[]; ); TODO ARRAYS
+			define_constant(ivec1, gl_PrimitiveIDIn);
+		}
+
+		// Requires OpenGL 3.3
+		namespace gl330
+		{
+			using namespace gl150;
+		}
+
+		// Requires OpenGL 4.0
+		namespace gl400
+		{
+			using namespace gl330;
+			define_constant(ivec1, gl_InvocationID);
+		}
+
+		// Requires OpenGL 4.1
+		namespace gl410
+		{
+			using namespace gl400;
+		}
+
+		// Requires OpenGL 4.2
+		namespace gl420
+		{
+			using namespace gl410;
+		}
+
+		// Requires OpenGL 4.3
+		namespace gl430
+		{
+			using namespace gl420;
+		}
+
+		// Requires OpenGL 4.4
+		namespace gl440
+		{
+			using namespace gl430;
+		}
+
+		// Requires OpenGL 4.5
+		namespace gl450
+		{
+			using namespace gl440;
+			// float gl_CullDistance[]; TODO ARRAYS
+		}
+	}
+
+	// Tessellation control shader
+	namespace tcs
+	{
+		// Requires OpenGL 4.0
+		namespace gl400
+		{
+			//define_constant(vec4, gl_Position);  TODO ARRAYS
+			//define_constant(vec1, gl_PointSize);  TODO ARRAYS
+			//define_constant(vec1, gl_ClipDistance[]; ); TODO ARRAYS
+			define_constant(ivec1, gl_PatchVerticesIn);
+			define_constant(ivec1, gl_PrimitiveID);
+			define_constant(ivec1, gl_InvocationID);
+		}
+
+		// Requires OpenGL 4.1
+		namespace gl410
+		{
+			using namespace gl400;
+		}
+
+		// Requires OpenGL 4.2
+		namespace gl420
+		{
+			using namespace gl410;
+		}
+
+		// Requires OpenGL 4.3
+		namespace gl430
+		{
+			using namespace gl420;
+		}
+
+		// Requires OpenGL 4.4
+		namespace gl440
+		{
+			using namespace gl430;
+		}
+
+		// Requires OpenGL 4.5
+		namespace gl450
+		{
+			using namespace gl440;
+			// float gl_CullDistance[]; TODO ARRAYS
+		}
+	}
+
+	// Tessellation evaluation shader
+	namespace tes
+	{
+		// Requires OpenGL 4.0
+		namespace gl400
+		{
+			//define_constant(vec4, gl_Position);  TODO ARRAYS
+			//define_constant(vec1, gl_PointSize);  TODO ARRAYS
+			define_constant(ivec1, gl_PatchVerticesIn);
+			define_constant(ivec1, gl_PrimitiveID);
+			define_constant(vec3, gl_TessCoord);
+			// patch in float gl_TessLevelOuter[4];
+			// patch in float gl_TessLevelInner[2];
+		}
+
+		// Requires OpenGL 4.1
+		namespace gl410
+		{
+			using namespace gl400;
+		}
+
+		// Requires OpenGL 4.2
+		namespace gl420
+		{
+			using namespace gl410;
+		}
+
+		// Requires OpenGL 4.3
+		namespace gl430
+		{
+			using namespace gl420;
+		}
+
+		// Requires OpenGL 4.4
+		namespace gl440
+		{
+			using namespace gl430;
+		}
+
+		// Requires OpenGL 4.5
+		namespace gl450
+		{
+			using namespace gl440;
+			// float gl_CullDistance[]; TODO ARRAYS
+		}
+	}
+
+	// Fragment shader
+	namespace fs
+	{
+		// Requires OpenGL 3.0
+		namespace gl130
+		{
+			define_constant(vec4, gl_FragCoord);
+			define_constant(bvec1, gl_FrontFacing);
+			//in float gl_ClipDistance[];
+		}
+
+		// Requires OpenGL 3.1
+		namespace gl140
+		{
+			using namespace gl130;
+		}
+
+		// Requires OpenGL 3.2
+		namespace gl150
+		{
+			using namespace gl140;
+			define_constant(vec2, gl_PointCoord);
+			define_constant(ivec1, gl_PrimitiveID);
+		}
+
+		// Requires OpenGL 3.3
+		namespace gl330
+		{
+			using namespace gl150;
+		}
+
+		// Requires OpenGL 4.0
+		namespace gl400
+		{
+			using namespace gl330;
+			define_constant(ivec1, gl_SampleID);
+			define_constant(vec2, gl_SamplePosition);
+		}
+
+		// Requires OpenGL 4.1
+		namespace gl410
+		{
+			using namespace gl400;
+		}
+		
+		// Requires OpenGL 4.2
+		namespace gl420
+		{
+			using namespace gl410;
+			//in int gl_SampleMaskIn[];
+		}
+
+		// Requires OpenGL 4.3
+		namespace gl430
+		{
+			using namespace gl420;
+			define_constant(ivec1, gl_Layer);
+			define_constant(ivec1, gl_ViewportIndex);
+		}
+
+		// Requires OpenGL 4.4
+		namespace gl440
+		{
+			using namespace gl430;
+		}
+
+		// Requires OpenGL 4.5
+		namespace gl450
+		{
+			using namespace gl440;
+			// float gl_CullDistance[]; TODO ARRAYS
+			define_constant(bvec1, gl_HelperInvocation);
+		}
+
+		// gl130 is taken as default
+		using namespace gl130;
+	}
 
 
-	// Constants
+	// Built-In Constants Section
+	// Implementation dependent constants.
 
-	define_constant(ivec1, gl_MaxVertexAttribs);
-	define_constant(ivec1, gl_MaxVertexOutputComponents);
-	define_constant(ivec1, gl_MaxVertexUniformComponents);
-	define_constant(ivec1, gl_MaxVertexTextureImageUnits);
-	define_constant(ivec1, gl_MaxGeometryInputComponents);
-	define_constant(ivec1, gl_MaxGeometryOutputComponents);
-	define_constant(ivec1, gl_MaxGeometryUniformComponents);
-	define_constant(ivec1, gl_MaxGeometryTextureImageUnits);
-	define_constant(ivec1, gl_MaxGeometryOutputVertices);
-	define_constant(ivec1, gl_MaxGeometryTotalOutputComponents);
-	define_constant(ivec1, gl_MaxGeometryVaryingComponents);
-	define_constant(ivec1, gl_MaxFragmentInputComponents);
-	define_constant(ivec1, gl_MaxDrawBuffers);
-	define_constant(ivec1, gl_MaxFragmentUniformComponents);
-	define_constant(ivec1, gl_MaxTextureImageUnits1);
-	define_constant(ivec1, gl_MaxClipDistances);
-	define_constant(ivec1, gl_MaxCombinedTextureImageUnits);
+	// Requires OpenGL 3.0
+	namespace gl130
+	{
+		define_constant(ivec1, gl_MaxTextureUnits);
+		define_constant(ivec1, gl_MaxVertexAttribs);
+		define_constant(ivec1, gl_MaxVertexUniformComponents);
+		define_constant(ivec1, gl_MaxVaryingComponents);
+		define_constant(ivec1, gl_MaxVertexTextureImageUnits);
+		define_constant(ivec1, gl_MaxCombinedTextureImageUnits);
+		define_constant(ivec1, gl_MaxTextureImageUnits);
+		define_constant(ivec1, gl_MaxFragmentUniformComponents);
+		define_constant(ivec1, gl_MaxDrawBuffers);
+		define_constant(ivec1, gl_MaxClipDistances);
+	}
+
+	// Requires OpenGL 3.1
+	namespace gl140
+	{
+		using namespace gl130;
+	}
+
+	// Requires OpenGL 3.2
+	namespace gl150
+	{
+		define_constant(ivec1, gl_MaxVertexOutputComponents);
+		define_constant(ivec1, gl_MaxGeometryInputComponents);
+		define_constant(ivec1, gl_MaxGeometryOutputComponents);
+		define_constant(ivec1, gl_MaxFragmentInputComponents);
+		define_constant(ivec1, gl_MaxGeometryTextureImageUnits);
+		define_constant(ivec1, gl_MaxGeometryOutputVertices);
+		define_constant(ivec1, gl_MaxGeometryTotalOutputComponents);
+		define_constant(ivec1, gl_MaxGeometryUniformComponents);
+		define_constant(ivec1, gl_MaxGeometryVaryingComponents);
+	}
+
+	// Requires OpenGL 3.3
+	namespace gl330
+	{
+		using namespace gl150;
+	}
 
 	// Requires OpenGL 4.0
-
-	define_constant(ivec1, gl_MaxTessControlInputComponents);
-	define_constant(ivec1, gl_MaxTessControlOutputComponents);
-	define_constant(ivec1, gl_MaxTessControlUniformComponents);
-	define_constant(ivec1, gl_MaxTessControlTextureImageUnits);
-	define_constant(ivec1, gl_MaxTessControlTotalOutputComponents);
-	define_constant(ivec1, gl_MaxTessEvaluationInputComponents);
-	define_constant(ivec1, gl_MaxTessEvaluationOutputComponents);
-	define_constant(ivec1, gl_MaxTessEvaluationUniformComponents);
-	define_constant(ivec1, gl_MaxTessEvaluationTextureImageUnits);
-	define_constant(ivec1, gl_MaxTessPatchComponents);
-	define_constant(ivec1, gl_MaxPatchVertices);
-	define_constant(ivec1, gl_MaxTessGenLevel);
-
+	namespace gl400
+	{
+		define_constant(ivec1, gl_MaxTessControlInputComponents);
+		define_constant(ivec1, gl_MaxTessControlOutputComponents);
+		define_constant(ivec1, gl_MaxTessControlUniformComponents);
+		define_constant(ivec1, gl_MaxTessControlTextureImageUnits);
+		define_constant(ivec1, gl_MaxTessControlTotalOutputComponents);
+		define_constant(ivec1, gl_MaxTessEvaluationInputComponents);
+		define_constant(ivec1, gl_MaxTessEvaluationOutputComponents);
+		define_constant(ivec1, gl_MaxTessEvaluationUniformComponents);
+		define_constant(ivec1, gl_MaxTessEvaluationTextureImageUnits);
+		define_constant(ivec1, gl_MaxTessPatchComponents);
+		define_constant(ivec1, gl_MaxPatchVertices);
+		define_constant(ivec1, gl_MaxTessGenLevel);
+	}
+	
 	// Requires OpenGL 4.1
-
-	define_constant(ivec1, gl_MaxViewports);
-	define_constant(ivec1, gl_MaxVertexUniformVectors);
-	define_constant(ivec1, gl_MaxFragmentUniformVectors);
-	define_constant(ivec1, gl_MaxVaryingVectors);
+	namespace gl410
+	{
+		using namespace gl400;
+		define_constant(ivec1, gl_MaxViewports);
+		define_constant(ivec1, gl_MaxVertexUniformVectors);
+		define_constant(ivec1, gl_MaxFragmentUniformVectors);
+		define_constant(ivec1, gl_MaxVaryingVectors);
+	}
 
 	// Requires OpenGL 4.2
-
-	define_constant(ivec1, gl_MaxVertexImageUniforms);
-	define_constant(ivec1, gl_MaxVertexAtomicCounters);
-	define_constant(ivec1, gl_MaxVertexAtomicCounterBuffers);
-	define_constant(ivec1, gl_MaxTessControlImageUniforms);
-	define_constant(ivec1, gl_MaxTessControlAtomicCounters);
-	define_constant(ivec1, gl_MaxTessControlAtomicCounterBuffers);
-	define_constant(ivec1, gl_MaxTessEvaluationImageUniforms);
-	define_constant(ivec1, gl_MaxTessEvaluationAtomicCounters);
-	define_constant(ivec1, gl_MaxTessEvaluationAtomicCounterBuffers);
-	define_constant(ivec1, gl_MaxGeometryImageUniforms);
-	define_constant(ivec1, gl_MaxGeometryAtomicCounters);
-	define_constant(ivec1, gl_MaxGeometryAtomicCounterBuffers);
-	define_constant(ivec1, gl_MaxFragmentImageUniforms);
-	define_constant(ivec1, gl_MaxFragmentAtomicCounters);
-	define_constant(ivec1, gl_MaxFragmentAtomicCounterBuffers);
-	define_constant(ivec1, gl_MaxCombinedImageUniforms);
-	define_constant(ivec1, gl_MaxCombinedAtomicCounters);
-	define_constant(ivec1, gl_MaxCombinedAtomicCounterBuffers);
-	define_constant(ivec1, gl_MaxImageUnits);
-	define_constant(ivec1, gl_MaxCombinedImageUnitsAndFragmentOutputs);
-	define_constant(ivec1, gl_MaxImageSamples);
-	define_constant(ivec1, gl_MaxAtomicCounterBindings);
-	define_constant(ivec1, gl_MaxAtomicCounterBufferSize);
-	define_constant(ivec1, gl_MinProgramTexelOffset);
-	define_constant(ivec1, gl_MaxProgramTexelOffset);
+	namespace gl420
+	{
+		using namespace gl420;
+		define_constant(ivec1, gl_MaxVertexImageUniforms);
+		define_constant(ivec1, gl_MaxVertexAtomicCounters);
+		define_constant(ivec1, gl_MaxVertexAtomicCounterBuffers);
+		define_constant(ivec1, gl_MaxTessControlImageUniforms);
+		define_constant(ivec1, gl_MaxTessControlAtomicCounters);
+		define_constant(ivec1, gl_MaxTessControlAtomicCounterBuffers);
+		define_constant(ivec1, gl_MaxTessEvaluationImageUniforms);
+		define_constant(ivec1, gl_MaxTessEvaluationAtomicCounters);
+		define_constant(ivec1, gl_MaxTessEvaluationAtomicCounterBuffers);
+		define_constant(ivec1, gl_MaxGeometryImageUniforms);
+		define_constant(ivec1, gl_MaxGeometryAtomicCounters);
+		define_constant(ivec1, gl_MaxGeometryAtomicCounterBuffers);
+		define_constant(ivec1, gl_MaxFragmentImageUniforms);
+		define_constant(ivec1, gl_MaxFragmentAtomicCounters);
+		define_constant(ivec1, gl_MaxFragmentAtomicCounterBuffers);
+		define_constant(ivec1, gl_MaxCombinedImageUniforms);
+		define_constant(ivec1, gl_MaxCombinedAtomicCounters);
+		define_constant(ivec1, gl_MaxCombinedAtomicCounterBuffers);
+		define_constant(ivec1, gl_MaxImageUnits);
+		define_constant(ivec1, gl_MaxCombinedImageUnitsAndFragmentOutputs);
+		define_constant(ivec1, gl_MaxImageSamples);
+		define_constant(ivec1, gl_MaxAtomicCounterBindings);
+		define_constant(ivec1, gl_MaxAtomicCounterBufferSize);
+		define_constant(ivec1, gl_MinProgramTexelOffset);
+		define_constant(ivec1, gl_MaxProgramTexelOffset);
+	}
 
 	// Requires OpenGL 4.3
-
-	define_constant(ivec3, gl_MaxComputeWorkGroupCount);
-	define_constant(ivec3, gl_MaxComputeWorkGroupSize);
-	define_constant(ivec1, gl_MaxComputeUniformComponents);
-	define_constant(ivec1, gl_MaxComputeTextureImageUnits);
-	define_constant(ivec1, gl_MaxComputeImageUniforms);
-	define_constant(ivec1, gl_MaxComputeAtomicCounters);
-	define_constant(ivec1, gl_MaxComputeAtomicCounterBuffers);
+	namespace gl430
+	{
+		using namespace gl420;
+		define_constant(ivec3, gl_MaxComputeWorkGroupCount);
+		define_constant(ivec3, gl_MaxComputeWorkGroupSize);
+		define_constant(ivec1, gl_MaxComputeUniformComponents);
+		define_constant(ivec1, gl_MaxComputeTextureImageUnits);
+		define_constant(ivec1, gl_MaxComputeImageUniforms);
+		define_constant(ivec1, gl_MaxComputeAtomicCounters);
+		define_constant(ivec1, gl_MaxComputeAtomicCounterBuffers);
+	}
 
 	// Requires OpenGL 4.4
+	namespace gl440
+	{
+		using namespace gl430;
+		define_constant(ivec1, gl_MaxTransformFeedbackBuffers);
+		define_constant(ivec1, gl_MaxTransformFeedbackInterleavedComponents);
+	}
 
-	define_constant(ivec1, gl_MaxTransformFeedbackBuffers);
-	define_constant(ivec1, gl_MaxTransformFeedbackInterleavedComponents);
+	// Requires OpenGL 4.5
+	namespace gl450
+	{
+		using namespace gl440;
+		define_constant(ivec1, gl_MaxCullDistances);
+		define_constant(ivec1, gl_MaxCombinedClipAndCullDistances);
+		define_constant(ivec1, gl_MaxSamples);
+		define_constant(ivec1, gl_MaxCombinedShaderOutputResources);
+		define_constant(ivec1, gl_MaxCombinedShaderOutputResources);
+	}
+
+	// gl130 is taken as default
+	using namespace gl130;
 }
