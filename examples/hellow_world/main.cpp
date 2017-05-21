@@ -5,12 +5,21 @@ void main()
 {
 	using namespace sb;
 	using namespace sb::gl440;
+	using namespace sb::fs;
 
 	{
 		context ctx;
 		vec4 AmbientColor           = ctx.uniform<vec4>("AmbientColor");
 		vec3 normal                 = ctx.in<vec3>("normal");
 		vec3 vertex_to_light_vector = ctx.in<vec3>("vertex_to_light_vector");
+
+		array<vec3> lights = ctx.uniform<array<vec3> >("lights[5]");
+
+		array<vec3> lights2(3);
+
+		lights2[0] = vec3(0.0);
+
+		vec3 b = lights2[0];
 
 		// Defining The Material Colors
 		const vec4 DiffuseColor = vec4(1.0, 0.0, 0.0, 1.0).SetName("DiffuseColor");
