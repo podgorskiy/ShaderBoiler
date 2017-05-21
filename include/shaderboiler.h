@@ -78,6 +78,7 @@ namespace sb
 			postdec,
 			cast,
 			functionCall,
+			arrayLookup,
 
 			ovec = floatConstant,
 			oivec = integerConstant,
@@ -190,6 +191,7 @@ namespace sb
 	template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
 	class basevar
 	{
+		template<typename T> friend class array;
 	public:
 		basevar()
 		{
@@ -216,6 +218,13 @@ namespace sb
 		// It is a pointer to the record (which is a pointer to the node) inside the context, which is used to notify context if the variable was modified. 
 		nodeshellWeakPtr shell;
 	private:
+		enum
+		{
+			type = T,
+			sizeM = S,
+			sizeN = S2
+		};
+
 		void Init()
 		{
 			src = nodePtr(new node());
@@ -763,6 +772,35 @@ namespace sb
 	function_def_twoArg(dot, vec1, vec2, vec2);
 	function_def_twoArg(dot, vec1, vec3, vec3);
 	function_def_twoArg(dot, vec1, vec4, vec4);
+
+	template<typename T>
+	class array: public basevar<static_cast<node::DataType>(T::type), static_cast<node::DataSize>(T::sizeM), static_cast<node::DataSize>(T::sizeN)>
+	{
+	public:
+		array(int size): size(size)
+		{
+
+		}
+		array(const std::string name) : name(name)
+		{
+
+		}
+		ivec1 length()
+		{
+
+		}
+		T operator[](ivec1 i)
+		{
+			T result;
+			result.src->optype = node::arrayLookup;
+			result.src->childs.push_back(i.src);
+			result.src->childs.push_back(src);
+			return result;
+		}
+	private:
+		std::string name;
+		int size = -1;
+	};
 
 #undef binop
 #undef class_def_size1
