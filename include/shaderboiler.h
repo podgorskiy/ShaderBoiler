@@ -188,8 +188,15 @@ namespace sb
 		nodePtr n;
 	};
 
+
+	class variable
+	{
+	};
+
+	typedef std::shared_ptr<variable> varPtr;
+
 	template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
-	class basevar
+	class basevar: public variable
 	{
 		template<typename T> friend class array;
 	public:
