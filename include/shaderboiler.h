@@ -172,6 +172,7 @@ namespace sb
 		DataType datatype;
 		DataSize datasize;
 		DataSize datasize_secondary;
+		int pointersTo = 0;
 
 	private:
 		int id = -1;
@@ -958,6 +959,20 @@ namespace sb
 		{
 			VisitNode((*it)->n, mainBlockList);
 		}
+
+		for (std::set<nodePtr>::iterator it = visitedNodes.begin(); it != visitedNodes.end(); ++it)
+		{
+			(*it)->pointersTo = 0;
+		}
+		for (std::set<nodePtr>::iterator it = visitedNodes.begin(); it != visitedNodes.end(); ++it)
+		{
+			std::vector<nodePtr>& childs = (*it)->childs;
+			for (std::vector<nodePtr>::iterator it  = childs.begin(); it != childs.end(); ++it)
+			{
+				(*it)->pointersTo++;
+			}
+		}
+
 		return GenerateCode();
 	}
 
