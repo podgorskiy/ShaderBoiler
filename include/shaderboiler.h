@@ -53,10 +53,6 @@ namespace sb
 		enum OpType
 		{
 			uninitialised,
-			floatConstant,
-			integerConstant,
-			unsignedIntegerConstant,
-			booleanConstant,
 			addition,
 			substruction,
 			multiplication,
@@ -80,12 +76,18 @@ namespace sb
 			functionCall,
 			arrayLookup,
 
+			const_bit = 0x1000,
+			floatConstant,
+			integerConstant,
+			unsignedIntegerConstant,
+			booleanConstant,
+
 			ovec = floatConstant,
 			oivec = integerConstant,
 			ouvec = unsignedIntegerConstant,
 			obvec = booleanConstant,
 
-			assign_bit = 0x1000,
+			assign_bit = const_bit << 1,
 			assign,
 			assign_addition,
 			assign_substruction,
@@ -932,6 +934,8 @@ namespace sb
 		template<typename T>
 		static T Get(node::Data* d, int i);
 
+		static std::string genConstant(nodePtr n);
+
 		std::list<nodeshellPtr> targetList;
 		std::list<nodePtr> ioVariablesList;
 		std::list<std::list<nodePtr> > listOffunctionNodesList;
@@ -1063,6 +1067,35 @@ namespace sb
 		ss.flags(oldFlags);
 	}
 
+	inline std::string context::genConstant(nodePtr n)
+	{
+		std::stringstream ss;
+		switch (n->optype)
+		{
+		case node::floatConstant:
+		{
+			PrintConstLiteral<float>(ss, n->data, GetType(n), n->datasize);
+		}
+		break;
+		case node::integerConstant:
+		{
+			PrintConstLiteral<int>(ss, n->data, GetType(n), n->datasize);
+		}
+		break;
+		case node::unsignedIntegerConstant:
+		{
+			PrintConstLiteral<unsigned int>(ss, n->data, GetType(n), n->datasize, "u");
+		}
+		break;
+		case node::booleanConstant:
+		{
+			PrintConstLiteral<std::string>(ss, n->data, GetType(n), n->datasize);
+		}
+		break;
+		}
+		return ss.str();
+	}
+
 	inline std::string context::Emit(nodePtr n)
 	{
 		if (node::predefined_bit & n->optype)
@@ -1182,129 +1215,137 @@ namespace sb
 			n->InitId(id++);
 			ss << GetType(n) << " " << n->GetId() << " = ";
 
-			switch (n->optype)
+			if (n->optype & node::const_bit)
 			{
-			case node::floatConstant:
-			{
-				PrintConstLiteral<float>(ss, n->data, GetType(n), n->datasize);
+				ss << genConstant(n);
 			}
-			break;
-			case node::integerConstant:
+			else
 			{
-				PrintConstLiteral<int>(ss, n->data, GetType(n), n->datasize);
-			}
-			break;
-			case node::unsignedIntegerConstant:
-			{
-				PrintConstLiteral<unsigned int>(ss, n->data, GetType(n), n->datasize, "u");
-			}
-			break;
-			case node::booleanConstant:
-			{
-				PrintConstLiteral<std::string>(ss, n->data, GetType(n), n->datasize);
-			}
-			break;
-			case node::addition:
-			{
-				ss << n->childs[0]->GetId() << " + " << n->childs[1]->GetId();
-			}
-			break;
-			case node::substruction:
-			{
-				ss << n->childs[0]->GetId() << " - " << n->childs[1]->GetId();
-			}
-			break;
-			case node::multiplication:
-			{
-				ss << n->childs[0]->GetId() << " * " << n->childs[1]->GetId();
-			}
-			break;
-			case node::division:
-			{
-				ss << n->childs[0]->GetId() << " / " << n->childs[1]->GetId();
-			}
-			break;
-			case node::lshift:
-			{
-				ss << n->childs[0]->GetId() << " << " << n->childs[1]->GetId();
-			}
-			case node::rshift:
-			{
-				ss << n->childs[0]->GetId() << " >> " << n->childs[1]->GetId();
-			}
-			case node:: or :
-			{
-				ss << n->childs[0]->GetId() << " | " << n->childs[1]->GetId();
-			}
-			case node::xor:
-			{
-				ss << n->childs[0]->GetId() << " ^ " << n->childs[1]->GetId();
-			}
-			case node::and:
-			{
-				ss << n->childs[0]->GetId() << " & " << n->childs[1]->GetId();
-			}
-			case node::lor:
-			{
-				ss << n->childs[0]->GetId() << " || " << n->childs[1]->GetId();
-			}
-			case node::lxor:
-			{
-				ss << n->childs[0]->GetId() << " ^^ " << n->childs[1]->GetId();
-			}
-			case node::land:
-			{
-				ss << n->childs[0]->GetId() << " && " << n->childs[1]->GetId();
-			}
-			case node::equal:
-			{
-				ss << n->childs[0]->GetId() << " == " << n->childs[1]->GetId();
-			}
-			case node::mod:
-			{
-				ss << n->childs[0]->GetId() << " % " << n->childs[1]->GetId();
-			}
-			case node::neg:
-			{
-				ss << "-" << n->childs[0]->GetId();
-			}
-			case node::preinc:
-			{
-				ss << "++" << n->childs[0]->GetId();
-			}
-			case node::predec:
-			{
-				ss << "--" << n->childs[0]->GetId();
-			}
-			case node::postinc:
-			{
-				ss << n->childs[0]->GetId() << "++";
-			}
-			case node::postdec:
-			{
-				ss << n->childs[0]->GetId() << "--";
-			}
-			case node::cast:
-			{
-				ss << GetType(n) << "(";
-				ss << n->childs[0]->GetId();
-				for (int i = 1; i < int(n->childs.size()); ++i)
+				switch (n->optype)
 				{
-					ss << ", " << n->childs[i]->GetId();
-				}
-				ss << ")";
-			}
-			case node::functionCall:
-			{
-				ss << n->fname << "(";
-				ss << n->childs[0]->GetId();
-				for (int i = 1; i < int(n->childs.size()); ++i)
+				case node::addition:
 				{
-					ss << ", " << n->childs[i]->GetId();
+					ss << n->childs[0]->GetId() << " + " << n->childs[1]->GetId();
 				}
-				ss << ")";
-			}
-			break;
+				break;
+				case node::substruction:
+				{
+					ss << n->childs[0]->GetId() << " - " << n->childs[1]->GetId();
+				}
+				break;
+				case node::multiplication:
+				{
+					ss << n->childs[0]->GetId() << " * " << n->childs[1]->GetId();
+				}
+				break;
+				case node::division:
+				{
+					ss << n->childs[0]->GetId() << " / " << n->childs[1]->GetId();
+				}
+				break;
+				case node::lshift:
+				{
+					ss << n->childs[0]->GetId() << " << " << n->childs[1]->GetId();
+				}
+				break;
+				case node::rshift:
+				{
+					ss << n->childs[0]->GetId() << " >> " << n->childs[1]->GetId();
+				}
+				break;
+				case node:: or :
+				{
+					ss << n->childs[0]->GetId() << " | " << n->childs[1]->GetId();
+				}
+				break;
+				case node::xor:
+				{
+					ss << n->childs[0]->GetId() << " ^ " << n->childs[1]->GetId();
+				}
+				break;
+				case node::and:
+				{
+					ss << n->childs[0]->GetId() << " & " << n->childs[1]->GetId();
+				}
+				break;
+				case node::lor:
+				{
+					ss << n->childs[0]->GetId() << " || " << n->childs[1]->GetId();
+				}
+				break;
+				case node::lxor:
+				{
+					ss << n->childs[0]->GetId() << " ^^ " << n->childs[1]->GetId();
+				}
+				break;
+				case node::land:
+				{
+					ss << n->childs[0]->GetId() << " && " << n->childs[1]->GetId();
+				}
+				break;
+				case node::equal:
+				{
+					ss << n->childs[0]->GetId() << " == " << n->childs[1]->GetId();
+				}
+				break;
+				case node::mod:
+				{
+					ss << n->childs[0]->GetId() << " % " << n->childs[1]->GetId();
+				}
+				break;
+				case node::neg:
+				{
+					ss << "-" << n->childs[0]->GetId();
+				}
+				break;
+				case node::preinc:
+				{
+					ss << "++" << n->childs[0]->GetId();
+				}
+				break;
+				case node::predec:
+				{
+					ss << "--" << n->childs[0]->GetId();
+				}
+				break;
+				case node::postinc:
+				{
+					ss << n->childs[0]->GetId() << "++";
+				}
+				break;
+				case node::postdec:
+				{
+					ss << n->childs[0]->GetId() << "--";
+				}
+				break;
+				case node::arrayLookup:
+				{
+					ss << n->childs[1]->GetId() << "[" << n->childs[0]->GetId() << "]";
+				}
+				break;
+				case node::cast:
+				{
+					ss << GetType(n) << "(";
+					ss << n->childs[0]->GetId();
+					for (int i = 1; i < int(n->childs.size()); ++i)
+					{
+						ss << ", " << n->childs[i]->GetId();
+					}
+					ss << ")";
+				}
+				break;
+				case node::functionCall:
+				{
+					ss << n->fname << "(";
+					ss << n->childs[0]->GetId();
+					for (int i = 1; i < int(n->childs.size()); ++i)
+					{
+						ss << ", " << n->childs[i]->GetId();
+					}
+					ss << ")";
+				}
+				break;
+				}
 			}
 		}
 
