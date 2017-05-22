@@ -476,6 +476,10 @@ namespace sb
 
 #define default_constructors(T, S) \
 		T##S() {}; \
+		T##S(const T##S& other) { \
+		 src = other.src; \
+		 /* shell is ignored */ \
+		}; \
 		T##S(const std::string& name) : basevar(name) {}; \
 		T##S(const std::string& name, node::OpType t) : basevar(name, t) {}; \
 		T##S& SetName(const std::string& name) { \
@@ -881,11 +885,12 @@ namespace sb
 		}
 
 		template<typename T>
-		T operator [] (const larva<T>& l)
+		T& operator [] (const larva<T>& l)
 		{
-			T result = l;
-			Register(result);
-			return result;
+			T* result = new T(l);
+			Register(*result);
+			garbageVars.push_back(varPtr(result));
+			return *result;
 		}
 
 	private:
@@ -925,6 +930,7 @@ namespace sb
 		std::list<std::list<nodePtr> > listOffunctionNodesList;
 		std::list<nodePtr> mainBlockList;
 		std::set<nodePtr> visitedNodes;
+		std::list<varPtr> garbageVars; // destroyed when context is destoyed
 		int id = 0;
 		int indent = 0;
 	};
