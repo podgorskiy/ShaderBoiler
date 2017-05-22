@@ -224,8 +224,8 @@ namespace sb
 		// Pointer to a node in compute graph
 		nodePtr src;
 
-		// This pointer is not null only for output variables. 
-		// It is a pointer to the record (which is a pointer to the node) inside the context, which is used to notify context if the variable was modified. 
+		// This pointer is not null only for reference variables (output variable, return of subscript operator on array, etc.). 
+		// It is a pointer to the record (which is a pointer to the value variable), which is used to replace the value node if the it was modified by the reference. 
 		nodeshellWeakPtr shell;
 	private:
 		enum
@@ -385,6 +385,7 @@ namespace sb
 			return *this; \
 		} else { \
 			src = x.src; \
+			/* shell is ignored */ \
 			return *this; \
 		} \
 	}
@@ -786,36 +787,7 @@ namespace sb
 	function_def_twoArg(dot, vec1, vec2, vec2);
 	function_def_twoArg(dot, vec1, vec3, vec3);
 	function_def_twoArg(dot, vec1, vec4, vec4);
-
-	template<typename T>
-	class array: public basevar<static_cast<node::DataType>(T::type), static_cast<node::DataSize>(T::sizeM), static_cast<node::DataSize>(T::sizeN)>
-	{
-	public:
-		array(int size): size(size)
-		{
-
-		}
-		array(const std::string name) : name(name)
-		{
-
-		}
-		ivec1 length()
-		{
-
-		}
-		T operator[](ivec1 i)
-		{
-			T result;
-			result.src->optype = node::arrayLookup;
-			result.src->childs.push_back(i.src);
-			result.src->childs.push_back(src);
-			return result;
-		}
-	private:
-		std::string name;
-		int size = -1;
-	};
-
+	
 #undef binop
 #undef class_def_size1
 #undef class_def_size2
@@ -826,6 +798,39 @@ namespace sb
 #undef op_ariphm_allTypes
 #undef op_bitop
 #undef op_shifts
+
+	template<typename T>
+	class array : public basevar<static_cast<node::DataType>(T::type), static_cast<node::DataSize>(T::sizeM), static_cast<node::DataSize>(T::sizeN)>
+	{
+	public:
+		array(int size) : size(size), shell(new nodeshell(src))
+		{
+		}
+		array(const std::string name) : name(name), shell(new nodeshell(src))
+		{
+		}
+		ivec1 length()
+		{
+
+		}
+		T& operator[](ivec1 i)
+		{
+			T* result = new T();
+			result->src->optype = node::arrayLookup;
+			result->src->childs.push_back(i.src);
+			result->src->childs.push_back(shell->n);
+
+			result->shell = shell;
+
+			garbageVars.push_back(varPtr(result));
+			return *result;
+		}
+	private:
+		nodeshellPtr shell;
+		std::list<varPtr> garbageVars; // destroyed when array is destoyed
+		std::string name;
+		int size = -1;
+	};
 
 	template<typename T>
 	class larva
