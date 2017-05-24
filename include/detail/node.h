@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cassert>
 
 namespace sb
 {
@@ -129,23 +130,24 @@ namespace sb
 
 			bool Initialised()
 			{
-				return id != -1;
+				return initialised;
 			}
 
 			std::string GetId() const
 			{
 				if (name.size() == 0)
 				{
+					std::string prefix = "sb_";
+
 					int base = 'z' - 'a' + 1;
 
 					int n = id;
 
 					if (n == 0)
 					{
-						return "a";
+						return prefix + "a";
 					}
 
-					std::string prefix;
 					while (n != 0)
 					{
 						int a = n % base;
@@ -160,9 +162,20 @@ namespace sb
 				}
 			}
 
-			void InitId(int id)
+			void InitId(int& id)
 			{
-				this->id = id;
+				if (!initialised)
+				{
+					if (name.size() == 0)
+					{
+						this->id = id++;
+					}
+					initialised = true;
+				}
+				else
+				{
+					assert(false);
+				}
 			}
 
 			void CopyIdFrom(nodePtr other)
@@ -183,6 +196,7 @@ namespace sb
 
 		private:
 			int id = -1;
+			bool initialised = false;
 		};
 
 		struct nodeshell;

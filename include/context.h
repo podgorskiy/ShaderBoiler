@@ -139,7 +139,7 @@ namespace sb
 		std::list<detail::nodePtr> mainBlockList;
 		std::set<detail::nodePtr> visitedNodes;
 		std::list<detail::varPtr> garbageVars; // destroyed when context is destoyed
-		int id = 0;
+		int id;
 		int indent = 0;
 	};
 
@@ -211,7 +211,7 @@ namespace sb
 		for (std::list<nodePtr>::iterator it = ioVariablesList.begin(); it != ioVariablesList.end(); ++it)
 		{
 			visitedNodes.insert(*it);
-			(*it)->InitId(id++);
+			(*it)->InitId(id);
 			Emit(tokenGen.GetStorageQualifier((*it)->optype) + tokenGen.GetType(*it) + " " + (*it)->GetId());
 		}
 
@@ -395,7 +395,7 @@ namespace sb
 
 		if (purge)
 		{
-			n->InitId(id++);
+			n->InitId(id);
 			expression = tokenGen.GetType(n) + " " + n->GetId() + " = " + expression;
 			Emit(expression);
 			expression = n->GetId();
