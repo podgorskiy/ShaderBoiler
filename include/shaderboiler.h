@@ -15,7 +15,6 @@
 #pragma once
 
 #include "datatypes.h"
-#include "detail/token_generator.h"
 #include "binary_operators.h"
 #include "array.h"
 #include "context.h"
