@@ -15,11 +15,9 @@ void main()
 
 		array<vec3> lights = ctx.uniform<array<vec3> >("lights[5]");
 
-		array<vec3> lights2(3);
+		lights[0] = vec3(0.0);
 
-		lights2[0] = vec3(0.0);
-
-		vec3 b = lights2[0];
+		vec3 b = lights[0];
 
 		// Defining The Material Colors
 		const vec4 DiffuseColor = vec4(1.0, 0.0, 0.0, 1.0).SetName("DiffuseColor");
@@ -33,7 +31,9 @@ void main()
 		vec3 normalized_vertex_to_light_vector = vertex_to_light_vector * 2;
 
 		// Calculating The Diffuse Term And Clamping It To [0;1]
-		Float DiffuseTerm = max(dot(normal, vertex_to_light_vector), 0.0).SetName("DiffuseTerm");
+		Float DiffuseTerm = max(dot(normal, vertex_to_light_vector + b), 0.0).SetName("DiffuseTerm");
+
+		AmbientColor += DiffuseTerm;
 
 		// Calculating The Final Color
 		ctx[fs::gl_FragColor] = AmbientColor + DiffuseColor * DiffuseTerm;
