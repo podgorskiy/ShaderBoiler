@@ -14,10 +14,24 @@
 
 #pragma once
 
-#include "datatypes.h"
-#include "binary_operators.h"
-#include "array.h"
-#include "context.h"
-#include "functions.h"
-#include "builetin_constants.h"
-#include "builetin_variables.h"
+namespace sb
+{
+	namespace detail
+	{
+		template<typename T>
+		class output_proxy
+		{
+		public:
+			output_proxy(const std::string& name) : name(name)
+			{}
+
+			operator T() const
+			{
+				T x(name, node::predefined_output);
+				return x;
+			}
+		private:
+			std::string name;
+		};
+	}
+}
