@@ -16,7 +16,7 @@
 
 #include "datatypes.h"
 
-#define define_constant(T, X) static const T X(#X, detail::node::predefined_const)
+#define define_constant(T, X) static const T X(#X, detail::node::builtin_variable)
 
 namespace sb
 {

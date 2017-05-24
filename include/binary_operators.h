@@ -43,10 +43,10 @@
 	}
 
 #define op_ariphm(T1, T2, T3)\
-	binop(T1, T2, T3, +, addition); \
-	binop(T1, T2, T3, -, substruction); \
-	binop(T1, T2, T3, *, multiplication); \
-	binop(T1, T2, T3, /, division); \
+	binop(T1, T2, T3, +, binary_addition); \
+	binop(T1, T2, T3, -, binary_substruction); \
+	binop(T1, T2, T3, *, binary_multiplication); \
+	binop(T1, T2, T3, /, binary_division); \
 
 #define assigop_ariphm(T1, T2)\
 	assignop(T1, T2, +=, assign_addition); \
@@ -55,21 +55,21 @@
 	assignop(T1, T2, /=, assign_division); \
 
 #define op_mod(T1, T2, T3) \
-	binop(T1, T2, T3, %, mod);
+	binop(T1, T2, T3, %, binary_mod);
 
 #define assigop_mod(T1, T2) \
 	assignop(T1, T2, %=, assign_mod); \
 
 #define op_shifts(T1, T2)\
-	binop(T1, T2, T1, <<, lshift); \
-	binop(T1, T2, T1, >>, rshift); \
+	binop(T1, T2, T1, <<, binary_lshift); \
+	binop(T1, T2, T1, >>, binary_rshift); \
 	assignop(T1, T2, <<=, assign_lshift); \
 	assignop(T1, T2, >>=, assign_rshift); \
 
 #define op_bitop(T1, T2, T3)\
-	binop(T1, T2, T3, &, and); \
-	binop(T1, T2, T3, |, or); \
-	binop(T1, T2, T3, ^, xor);
+	binop(T1, T2, T3, &, binary_and); \
+	binop(T1, T2, T3, |, binary_or); \
+	binop(T1, T2, T3, ^, binary_xor);
 
 #define assigop_bitop(T1, T2)\
 	assignop(T1, T2, &=, assign_and); \
@@ -122,8 +122,8 @@ namespace sb
 	//op_ariphm(mat2, mat2, mat2);
 	//op_ariphm(mat2, mat2, mat2);
 
-	binop(bvec1, bvec1, bvec1, &&, land);
-	binop(bvec1, bvec1, bvec1, || , lor);
+	binop(bvec1, bvec1, bvec1, &&, binary_land);
+	binop(bvec1, bvec1, bvec1, || , binary_lor);
 	//binop(bvec1, bvec1, bvec1, ^^, lxor); // operator not supported by c++
 
 	bvec1 operator<(const vec1& a, const vec1& b)

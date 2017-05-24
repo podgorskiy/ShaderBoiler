@@ -28,8 +28,8 @@
 	/* Assign operator, like T1 a; a = T2(); Not trivial for input-output variables */ \
 	/* Inside class definition */ \
 	T1##S operator = (const T2##S& x) { \
-		bool io_node = (src->optype & detail::node::io_bit) != 0 || (src->optype & detail::node::predefined_output) != 0; \
-		bool io_assign_node = (src->childs.size() > 0) && (src->childs[0]->optype & detail::node::io_bit) != 0; \
+		bool io_node = (src->optype & detail::node::storage_bit) != 0 || (src->optype == detail::node::builtin_variable) != 0; \
+		bool io_assign_node = (src->childs.size() > 0) && (src->childs[0]->optype & detail::node::storage_bit) != 0; \
 		if (io_node || io_assign_node) {\
 			T1##S result; \
 			detail::nodePtr oldsrc; \

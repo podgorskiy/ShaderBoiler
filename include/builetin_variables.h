@@ -18,7 +18,7 @@
 #include "array.h"
 #include "detail/output_proxy.h"
 
-#define define_input(T, X) static const T X(#X, detail::node::predefined_const)
+#define define_input(T, X) static const T X(#X, detail::node::builtin_variable)
 #define define_output(T, X) static const detail::output_proxy<T> X(#X)
 
 namespace sb

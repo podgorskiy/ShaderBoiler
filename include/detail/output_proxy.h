@@ -27,7 +27,7 @@ namespace sb
 
 			operator T() const
 			{
-				T x(name, node::predefined_output);
+				T x(name, node::builtin_variable);
 				return x;
 			}
 		private:
