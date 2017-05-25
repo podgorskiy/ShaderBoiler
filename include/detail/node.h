@@ -164,7 +164,7 @@ namespace sb
 				}
 			}
 
-			void InitId(int& id)
+			void InitWithIdId(int& id)
 			{
 				if (!initialised)
 				{
@@ -178,6 +178,11 @@ namespace sb
 				{
 					assert(false);
 				}
+			}
+
+			void MarkInitialised()
+			{
+				initialised = true;
 			}
 
 			void CopyIdFrom(nodePtr other)
@@ -198,8 +203,8 @@ namespace sb
 			int pointersTo = 0;
 
 		private:
-			int id = -1;
 			bool initialised = false;
+			int id = -1;
 		};
 
 		struct nodeshell;

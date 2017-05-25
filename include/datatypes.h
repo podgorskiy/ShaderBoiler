@@ -56,8 +56,16 @@ namespace sb
 				this_.src->childs.push_back(oldsrc);
 				this_.src->childs.push_back(x.src);
 				if (!this_.shell.expired())
-				{ 
+				{
 					this_.shell.lock()->n = this_.src;
+					/*if (arrayLookUp && (this_.shell.lock()->n->optype & detail::node::arrayLookup) != 0)
+					{
+						this_.shell.lock()->n.shell.lock()->n = this_.src;
+					}
+					else
+					{
+					}
+					*/
 				} 
 				return this_;
 			}

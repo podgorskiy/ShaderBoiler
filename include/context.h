@@ -211,7 +211,7 @@ namespace sb
 		for (std::list<nodePtr>::iterator it = ioVariablesList.begin(); it != ioVariablesList.end(); ++it)
 		{
 			visitedNodes.insert(*it);
-			(*it)->InitId(id);
+			(*it)->InitWithIdId(id);
 			Emit(tokenGen.GetStorageQualifier((*it)->optype) + tokenGen.GetType(*it) + " " + (*it)->GetId());
 		}
 
@@ -383,7 +383,7 @@ namespace sb
 		}
 		else if (node::uninitialised == n->optype)
 		{
-			n->InitId(id);
+			n->InitWithIdId(id);
 			expression = tokenGen.GetType(n) + " " + n->GetId();
 			Emit(expression, "Warning, variable is used but might be unset.");
 			expression = n->GetId();
@@ -391,7 +391,7 @@ namespace sb
 		else if (node::array_declaration == n->optype)
 		{
 			std::stringstream ss;
-			n->InitId(id);
+			n->InitWithIdId(id);
 			ss << tokenGen.GetType(n) << " " << n->GetId() << "[" << n->arraySize << "]";
 			expression = ss.str();
 			Emit(expression);
@@ -400,6 +400,7 @@ namespace sb
 		else if (node::dependency == n->optype)
 		{
 			Accept(n->childs[0]);
+			n->childs[0]->MarkInitialised(); // needed if lhs is not named
 			expression = Accept(n->childs[1]);
 		}
 
@@ -422,7 +423,7 @@ namespace sb
 
 		if (purge)
 		{
-			n->InitId(id);
+			n->InitWithIdId(id);
 			expression = tokenGen.GetType(n) + " " + n->GetId() + " = " + expression;
 			Emit(expression);
 			expression = n->GetId();

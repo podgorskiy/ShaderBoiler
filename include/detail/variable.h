@@ -20,7 +20,7 @@
 
 namespace sb
 {
-	template<typename T> 
+	template<typename T, int S>
 	class array;
 
 	namespace detail
@@ -44,7 +44,7 @@ namespace sb
 		template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
 		class typed_variable : public variable
 		{
-			template<typename T> friend class ::sb::array;
+			template<typename T, int S> friend class ::sb::array;
 		public:
 			typed_variable()
 			{

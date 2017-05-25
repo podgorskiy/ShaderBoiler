@@ -20,26 +20,45 @@
 
 namespace sb
 {
-	template<typename T>
+	namespace detail
+	{
+		template<typename T>
+		void SetStrongShellPointer(T& var, detail::nodeshellPtr ptr)
+		{
+		}
+
+		// Needed to propagate shell pointer through multidimentional arrays.
+		template<typename T, int S>
+		void SetStrongShellPointer(array<T, S>& var, detail::nodeshellPtr ptr)
+		{
+			var.strongPtrShell = ptr;
+		}
+	}
+
+	template<typename T, int S>
 	class array : public detail::typed_variable<static_cast<detail::node::DataType>(T::type), static_cast<detail::node::DataSize>(T::sizeM), static_cast<detail::node::DataSize>(T::sizeN)>
 	{
 	public:
-		array(int size) : size(size), strongPtrShell(new detail::nodeshell(src))
+		array(): strongPtrShell(new detail::nodeshell(src))
 		{
 			src->optype = detail::node::array_declaration;
-			src->arraySize = size;
+			src->arraySize = S;
 		}
 		array(const std::string name) : name(name), strongPtrShell(new detail::nodeshell(src))
 		{
 			src->optype = detail::node::array_declaration;
+			src->arraySize = S;
 		}
 		ivec1 length()
 		{
-			return size;
+			return S;
 		}
 		T& operator[](ivec1 i)
 		{
 			T* result = new T();
+
+			SetStrongShellPointer(*result, strongPtrShell);
+
 			result->src->optype = detail::node::arrayLookup;
 
 			if (strongPtrShell->n != src)
@@ -67,15 +86,16 @@ namespace sb
 			return *result;
 		}
 
-		array<T>& SetName(const std::string& name)
+		array<T, S>& SetName(const std::string& name)
 		{
 			src->name = name;
 			return *this;
 		}
-	private:
+
 		detail::nodeshellPtr strongPtrShell;
+
+	private:
 		std::list<detail::varPtr> garbageVars; // destroyed when array is destoyed
 		std::string name;
-		int size = -1;
 	};
 }
