@@ -253,6 +253,7 @@ namespace sb
 		case node::arrayLookup:
 		case node::postunary_postdec:
 		case node::postunary_postinc:
+		case node::memberAccess:
 			return 2;
 		case node::preunary_neg:
 		case node::preunary_dec:
@@ -306,6 +307,7 @@ namespace sb
 			(node::builtin_variable == currentOp) ||
 			(node::uninitialised == parentOp) ||
 			(node::array_declaration == currentOp) ||
+			(node::uninitialised == currentOp) ||
 			(node::dependency == currentOp) ||
 			(node::cast == currentOp) ||
 			(node::cast == parentOp))
@@ -391,6 +393,10 @@ namespace sb
 			ss << ")";
 			expression = ss.str();
 		}
+		else if (node::memberAccess == n->optype)
+		{
+			expression = Accept(n->childs[0]) + "." + n->fname;
+		}
 		else if (node::uninitialised == n->optype)
 		{
 			n->InitWithIdId(id);
@@ -437,7 +443,7 @@ namespace sb
 			purge = false;
 		}
 
-		if (purge)
+		if (purge && !n->Initialised())
 		{
 			n->InitWithIdId(id);
 			expression = tokenGen.GetType(n) + " " + n->GetId() + " = " + expression;

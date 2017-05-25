@@ -109,7 +109,6 @@ namespace sb
 		detail::nodeshellPtr strongPtrShell;
 
 	private:
-		std::list<detail::varPtr> garbageVars; // destroyed when array is destoyed
 		std::string name;
 	};
 }

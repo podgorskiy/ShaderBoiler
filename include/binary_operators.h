@@ -36,8 +36,8 @@
 		result.src->childs.push_back(a.src); \
 		result.src->childs.push_back(b.src); \
 		a.src = result.src; \
-		if (!a.shell.expired()) { \
-			a.shell.lock()->n = a.src; \
+		if (a.shell) { \
+			a.shell->n = a.src; \
 		} \
 		return a; \
 	}

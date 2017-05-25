@@ -15,6 +15,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <list>
 
 #include "node.h"
 
@@ -28,15 +29,20 @@ namespace sb
 		class variable
 		{
 		public:
-			variable() : src(nodePtr(new node()))
+			variable() : src(nodePtr(new node())), originalsrc(src), ptrToSrcPtr(nullptr)
 			{}
 
 			// Pointer to a node in compute graph
 			nodePtr src;
 
+			// Pointer to a node in compute graph, which is not overwritten by references
+			nodePtr originalsrc;
+
 			// This pointer is not null only for reference variables (output variable, return of subscript operator on array, etc.). 
 			// It is a pointer to the record (which is a pointer to the value variable), which is used to replace the value node if the it was modified by the reference. 
-			nodeshellWeakPtr shell;
+			nodeshellPtr shell;
+
+			nodeGrandPtr ptrToSrcPtr;
 		};
 
 		typedef std::shared_ptr<variable> varPtr;
@@ -64,7 +70,7 @@ namespace sb
 				src->optype = t;
 			}
 
-		private:
+		protected:
 			enum
 			{
 				type = T,
@@ -78,6 +84,8 @@ namespace sb
 				src->datasize = S;
 				src->datasize_secondary = S2;
 			}
+
+			std::list<detail::varPtr> garbageVars; // destroyed when array is destoyed
 		};
 
 		// Free function to access node from pointer to variable object. 

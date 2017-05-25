@@ -62,6 +62,7 @@ namespace sb
 				builtin_variable,
 				array_declaration,
 				dependency,
+				memberAccess,
 
 				binary_bit = bit_table << 0,
 				binary_addition,
@@ -211,6 +212,7 @@ namespace sb
 
 		typedef std::weak_ptr<nodeshell> nodeshellWeakPtr;
 		typedef std::shared_ptr<nodeshell> nodeshellPtr;
+		typedef nodePtr* nodeGrandPtr;
 
 		struct nodeshell
 		{

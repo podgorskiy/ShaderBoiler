@@ -37,6 +37,7 @@ namespace sb
 				(this_.src->childs.size() > 0) && 
 				((this_.src->childs[0]->optype & detail::node::storage_bit) != 0 || (this_.src->childs[0]->optype == detail::node::builtin_variable) != 0);
 			bool arrayLookUp = (this_.src->optype & detail::node::arrayLookup) != 0;
+			bool memberAccess = (this_.src->optype == detail::node::memberAccess) != 0;
 			if (io_node || io_assign_node || arrayLookUp)
 			{
 				T1 result; 
@@ -55,18 +56,22 @@ namespace sb
 				this_.src->optype = detail::node::assign;
 				this_.src->childs.push_back(oldsrc);
 				this_.src->childs.push_back(x.src);
-				if (!this_.shell.expired())
+
+				if (memberAccess)
 				{
-					this_.shell.lock()->n = this_.src;
-					/*if (arrayLookUp && (this_.shell.lock()->n->optype & detail::node::arrayLookup) != 0)
+					if (this_.ptrToSrcPtr)
 					{
-						this_.shell.lock()->n.shell.lock()->n = this_.src;
+						*this_.ptrToSrcPtr = this_.src;
 					}
-					else
+				}
+				else
+				{
+					if (this_.shell)
 					{
+						this_.shell->n = this_.src;
 					}
-					*/
-				} 
+				}
+
 				return this_;
 			}
 			else 
@@ -78,6 +83,110 @@ namespace sb
 		}
 	}
 }
+
+#define SWIZZLE(C, T, M) T& M();
+
+#define SWIZZLES_XY1(C, T, P, X, Y) \
+		SWIZZLE(C, T, P##X); \
+		SWIZZLE(C, T, P##Y); \
+
+#define SWIZZLES_XY2(C, T, P, X, Y) \
+		SWIZZLES_XY1(C, T, P##X, X, Y); \
+		SWIZZLES_XY1(C, T, P##Y, X, Y); \
+
+#define SWIZZLES_XY3(C, T, P, X, Y) \
+		SWIZZLES_XY2(C, T, P##X, X, Y); \
+		SWIZZLES_XY2(C, T, P##Y, X, Y); \
+
+#define SWIZZLES_XY4(C, T, _, X, Y) \
+		SWIZZLES_XY3(C, T, X, X, Y) \
+		SWIZZLES_XY3(C, T, Y, X, Y)
+
+#define SWIZZLES_XYZ1(C, T, P, X, Y, Z) \
+		SWIZZLE(C, T, P##X); \
+		SWIZZLE(C, T, P##Y); \
+		SWIZZLE(C, T, P##Z); \
+
+#define SWIZZLES_XYZ2(C, T, P, X, Y, Z) \
+		SWIZZLES_XYZ1(C, T, P##X, X, Y, Z); \
+		SWIZZLES_XYZ1(C, T, P##Y, X, Y, Z); \
+		SWIZZLES_XYZ1(C, T, P##Z, X, Y, Z); \
+
+#define SWIZZLES_XYZ3(C, T, P, X, Y, Z) \
+		SWIZZLES_XYZ2(C, T, P##X, X, Y, Z); \
+		SWIZZLES_XYZ2(C, T, P##Y, X, Y, Z); \
+		SWIZZLES_XYZ2(C, T, P##Z, X, Y, Z); \
+
+#define SWIZZLES_XYZ4(C, T, _, X, Y, Z) \
+		SWIZZLES_XYZ3(C, T, X, X, Y, Z) \
+		SWIZZLES_XYZ3(C, T, Y, X, Y, Z) \
+		SWIZZLES_XYZ3(C, T, Z, X, Y, Z)
+
+#define SWIZZLES_XYZW1(C, T, P, X, Y, Z, W) \
+		SWIZZLE(C, T, P##X); \
+		SWIZZLE(C, T, P##Y); \
+		SWIZZLE(C, T, P##Z); \
+		SWIZZLE(C, T, P##W); \
+
+#define SWIZZLES_XYZW2(C, T, P, X, Y, Z, W) \
+		SWIZZLES_XYZW1(C, T, P##X, X, Y, Z, W); \
+		SWIZZLES_XYZW1(C, T, P##Y, X, Y, Z, W); \
+		SWIZZLES_XYZW1(C, T, P##Z, X, Y, Z, W); \
+		SWIZZLES_XYZW1(C, T, P##W, X, Y, Z, W); \
+
+#define SWIZZLES_XYZW3(C, T, P, X, Y, Z, W) \
+		SWIZZLES_XYZW2(C, T, P##X, X, Y, Z, W); \
+		SWIZZLES_XYZW2(C, T, P##Y, X, Y, Z, W); \
+		SWIZZLES_XYZW2(C, T, P##Z, X, Y, Z, W); \
+		SWIZZLES_XYZW2(C, T, P##W, X, Y, Z, W); \
+
+#define SWIZZLES_XYZW4(C, T, _, X, Y, Z, W) \
+		SWIZZLES_XYZW3(C, T, X, X, Y, Z, W) \
+		SWIZZLES_XYZW3(C, T, Y, X, Y, Z, W) \
+		SWIZZLES_XYZW3(C, T, Z, X, Y, Z, W) \
+		SWIZZLES_XYZW3(C, T, W, X, Y, Z, W) \
+
+#define SWIZZLE_XY_SET(C, T) \
+		SWIZZLES_XY1(C, T##1, , x, y)\
+		SWIZZLES_XY2(C, T##2, , x, y)\
+		SWIZZLES_XY3(C, T##3, , x, y)\
+		SWIZZLES_XY4(C, T##4, , x, y)\
+		SWIZZLES_XY1(C, T##1, , r, g)\
+		SWIZZLES_XY2(C, T##2, , r, g)\
+		SWIZZLES_XY3(C, T##3, , r, g)\
+		SWIZZLES_XY4(C, T##4, , r, g)\
+		SWIZZLES_XY1(C, T##1, , s, t)\
+		SWIZZLES_XY2(C, T##2, , s, t)\
+		SWIZZLES_XY3(C, T##3, , s, t)\
+		SWIZZLES_XY4(C, T##4, , s, t)\
+
+#define SWIZZLE_XYZ_SET(C, T) \
+		SWIZZLES_XYZ1(C, T##1,  , x, y, z)\
+		SWIZZLES_XYZ2(C, T##2,  , x, y, z)\
+		SWIZZLES_XYZ3(C, T##3,  , x, y, z)\
+		SWIZZLES_XYZ4(C, T##4,  , x, y, z)\
+		SWIZZLES_XYZ1(C, T##1,  , r, g, b)\
+		SWIZZLES_XYZ2(C, T##2,  , r, g, b)\
+		SWIZZLES_XYZ3(C, T##3,  , r, g, b)\
+		SWIZZLES_XYZ4(C, T##4,  , r, g, b)\
+		SWIZZLES_XYZ1(C, T##1,  , s, t, p)\
+		SWIZZLES_XYZ2(C, T##2,  , s, t, p)\
+		SWIZZLES_XYZ3(C, T##3,  , s, t, p)\
+		SWIZZLES_XYZ4(C, T##4,  , s, t, p)\
+
+#define SWIZZLE_XYZW_SET(C, T) \
+		SWIZZLES_XYZW1(C, T##1, , x, y, z, w)\
+		SWIZZLES_XYZW2(C, T##2, , x, y, z, w)\
+		SWIZZLES_XYZW3(C, T##3, , x, y, z, w)\
+		SWIZZLES_XYZW4(C, T##4, , x, y, z, w)\
+		SWIZZLES_XYZW1(C, T##1, , r, g, b, a)\
+		SWIZZLES_XYZW2(C, T##2, , r, g, b, a)\
+		SWIZZLES_XYZW3(C, T##3, , r, g, b, a)\
+		SWIZZLES_XYZW4(C, T##4, , r, g, b, a)\
+		SWIZZLES_XYZW1(C, T##1, , s, t, p, q)\
+		SWIZZLES_XYZW2(C, T##2, , s, t, p, q)\
+		SWIZZLES_XYZW3(C, T##3, , s, t, p, q)\
+		SWIZZLES_XYZW4(C, T##4, , s, t, p, q)\
 
 #define simple_assignop(T1, T2, S)\
 	/* Assign operator, like T1 a; a = T2(); Not trivial for input-output variables */ \
@@ -189,6 +298,7 @@ namespace sb
 		type_cast(T, 2); \
 		simple_assignop(T, T, 2); \
 		cast_from_const_literal_scalar(T, 2); \
+		SWIZZLE_XY_SET(,T) \
 	}
 
 #define class_vec_def_size3(T) \
@@ -204,6 +314,7 @@ namespace sb
 		simple_assignop(T, T, 3); \
 		main_constructor(T, 3); \
 		cast_from_const_literal_scalar(T, 3); \
+		SWIZZLE_XYZ_SET(,T) \
 	}
 
 #define class_vec_def_size4(T) \
@@ -222,6 +333,7 @@ namespace sb
 		simple_assignop(T, T, 4); \
 		main_constructor(T, 4); \
 		cast_from_const_literal_scalar(T, 4); \
+		SWIZZLE_XYZW_SET(,T) \
 	}
 
 #define class_mat_def_(T, PT, M, N, MbyN) \
@@ -234,6 +346,17 @@ namespace sb
 
 #define class_mat_def(T, PT, M, N) class_mat_def_(T, PT, M, N, MULL(M, N))
 
+#define class_vec_methods_def_size1(T) \
+
+#define class_vec_methods_def_size2(T) \
+		SWIZZLE_XY_SET(T##2,T)
+
+#define class_vec_methods_def_size3(T) \
+		SWIZZLE_XYZ_SET(T##3,T)
+
+#define class_vec_methods_def_size4(T) \
+		SWIZZLE_XYZW_SET(T##4,T)
+
 #define class_vec_dec(T) \
 	class_vec_dec_size(T, 1); \
 	class_vec_dec_size(T, 2); \
@@ -245,6 +368,12 @@ namespace sb
 	class_vec_def_size2(T); \
 	class_vec_def_size3(T); \
 	class_vec_def_size4(T)
+
+#define class_vec_methods_def(T) \
+	class_vec_methods_def_size1(T); \
+	class_vec_methods_def_size2(T); \
+	class_vec_methods_def_size3(T); \
+	class_vec_methods_def_size4(T)
 
 namespace sb
 {
@@ -269,6 +398,36 @@ namespace sb
 	class_vec_def(uvec);
 	// bool vector
 	class_vec_def(bvec);
+
+#undef SWIZZLE
+
+#define SWIZZLE(C, T, M) T& C::M(){\
+			T* result = new T();\
+			result->src->optype = detail::node::memberAccess; \
+			result->src->fname = #M; \
+			if (src == originalsrc) { \
+				result->src->childs.push_back(src); \
+			} \
+			else { \
+				detail::nodePtr junction(new detail::node()); \
+				junction->optype = detail::node::dependency; \
+				junction->childs.push_back(src); \
+				junction->childs.push_back(originalsrc); \
+				result->src->childs.push_back(junction); \
+			} \
+			result->ptrToSrcPtr = &src; \
+			garbageVars.push_back(detail::varPtr(result)); \
+			return *result; \
+	}\
+
+	// float vector
+	class_vec_methods_def(vec);
+	// int vector
+	class_vec_methods_def(ivec);
+	// unsigned int vector
+	class_vec_methods_def(uvec);
+	// bool vector
+	class_vec_methods_def(bvec);
 
 	class_mat_def(mat, vec, 2, 2);
 	class_mat_def(mat, vec, 3, 3);
