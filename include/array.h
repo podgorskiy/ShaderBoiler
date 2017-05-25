@@ -66,6 +66,12 @@ namespace sb
 			garbageVars.push_back(detail::varPtr(result));
 			return *result;
 		}
+
+		array<T>& SetName(const std::string& name)
+		{
+			src->name = name;
+			return *this;
+		}
 	private:
 		detail::nodeshellPtr strongPtrShell;
 		std::list<detail::varPtr> garbageVars; // destroyed when array is destoyed
