@@ -26,6 +26,8 @@ namespace sb
 
 	namespace detail
 	{
+		template<typename T1, typename T2> T1& GenerateSwizzle(T2*, const char*);
+
 		class variable
 		{
 		public:
@@ -51,6 +53,7 @@ namespace sb
 		class typed_variable : public variable
 		{
 			template<typename T, int S> friend class ::sb::array;
+			template<typename T1, typename T2> friend T1& ::sb::detail::GenerateSwizzle(T2*, const char*);
 		public:
 			typed_variable()
 			{

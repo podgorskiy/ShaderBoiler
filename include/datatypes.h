@@ -377,6 +377,32 @@ namespace sb
 
 namespace sb
 {
+	namespace detail
+	{
+		template<typename T1, typename T2>
+		T1& GenerateSwizzle(T2* this_, const char* m)
+		{
+			T1* result = new T1();
+			result->src->optype = detail::node::memberAccess;
+			result->src->fname = m;
+			if (this_->src == this_->originalsrc)
+			{
+				result->src->childs.push_back(this_->src);
+			}
+			else
+			{
+				detail::nodePtr junction(new detail::node());
+				junction->optype = node::dependency;
+				junction->childs.push_back(this_->src);
+				junction->childs.push_back(this_->originalsrc);
+				result->src->childs.push_back(junction);
+			}
+			result->ptrToSrcPtr = &(this_->src);
+			this_->garbageVars.push_back(varPtr(result));
+			return *result;
+		}
+	}
+
 	/* Class declaration section.
 	* Declarations needed for drop cast operators, like vec2(vec4(1.0))
 	*/
@@ -401,24 +427,7 @@ namespace sb
 
 #undef SWIZZLE
 
-#define SWIZZLE(C, T, M) T& C::M(){\
-			T* result = new T();\
-			result->src->optype = detail::node::memberAccess; \
-			result->src->fname = #M; \
-			if (src == originalsrc) { \
-				result->src->childs.push_back(src); \
-			} \
-			else { \
-				detail::nodePtr junction(new detail::node()); \
-				junction->optype = detail::node::dependency; \
-				junction->childs.push_back(src); \
-				junction->childs.push_back(originalsrc); \
-				result->src->childs.push_back(junction); \
-			} \
-			result->ptrToSrcPtr = &src; \
-			garbageVars.push_back(detail::varPtr(result)); \
-			return *result; \
-	}\
+#define SWIZZLE(C, T, M) T& C::M(){ return detail::GenerateSwizzle<T, C>(this, #M); }
 
 	// float vector
 	class_vec_methods_def(vec);
