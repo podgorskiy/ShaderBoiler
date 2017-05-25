@@ -33,6 +33,18 @@ namespace sb
 		{
 			var.strongPtrShell = ptr;
 		}
+
+		template<typename T>
+		void PushArraySize(const T*, std::vector<int>& sizes)
+		{
+		}
+
+		template<typename T, int S>
+		void PushArraySize(const array<T, S>*, std::vector<int>& sizes)
+		{
+			sizes.push_back(S);
+			PushArraySize((T*)(nullptr), sizes);
+		}
 	}
 
 	template<typename T, int S>
@@ -42,12 +54,14 @@ namespace sb
 		array(): strongPtrShell(new detail::nodeshell(src))
 		{
 			src->optype = detail::node::array_declaration;
-			src->arraySize = S;
+			src->arraySize.push_back(S);
+			PushArraySize((T*)(nullptr), src->arraySize);
 		}
 		array(const std::string name) : name(name), strongPtrShell(new detail::nodeshell(src))
 		{
 			src->optype = detail::node::array_declaration;
-			src->arraySize = S;
+			src->arraySize.push_back(S);
+			PushArraySize((T*)(nullptr), src->arraySize);
 		}
 		ivec1 length()
 		{

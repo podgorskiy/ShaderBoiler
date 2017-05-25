@@ -199,7 +199,7 @@ namespace sb
 			DataType datatype;
 			DataSize datasize;
 			DataSize datasize_secondary;
-			int arraySize = 0;
+			std::vector<int> arraySize;
 			int pointersTo = 0;
 
 		private:

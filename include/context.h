@@ -212,7 +212,17 @@ namespace sb
 		{
 			visitedNodes.insert(*it);
 			(*it)->InitWithIdId(id);
-			Emit(tokenGen.GetStorageQualifier((*it)->optype) + tokenGen.GetType(*it) + " " + (*it)->GetId());
+
+			std::stringstream ss;
+
+			ss << tokenGen.GetStorageQualifier((*it)->optype) << tokenGen.GetType(*it) << " " << (*it)->GetId();
+
+			for (std::vector<int>::iterator size = (*it)->arraySize.begin(); size != (*it)->arraySize.end(); ++size)
+			{
+				ss << "[" << (*size) << "]";
+			}
+
+			Emit(ss.str());
 		}
 
 		ss << codeblock;
@@ -392,7 +402,13 @@ namespace sb
 		{
 			std::stringstream ss;
 			n->InitWithIdId(id);
-			ss << tokenGen.GetType(n) << " " << n->GetId() << "[" << n->arraySize << "]";
+			ss << tokenGen.GetType(n) << " " << n->GetId();
+			
+			for (std::vector<int>::iterator it = n->arraySize.begin(); it != n->arraySize.end(); ++it)
+			{
+				ss << "[" << (*it) << "]";
+			}
+
 			expression = ss.str();
 			Emit(expression);
 			return n->GetId();
