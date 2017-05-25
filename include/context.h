@@ -128,7 +128,7 @@ namespace sb
 		void VisitNode(detail::nodePtr n, std::list<detail::nodePtr>& defaultList);
 
 		std::string Accept(detail::nodePtr n, detail::node::OpType parentOp = detail::node::uninitialised);
-		void Emit(const std::string& str);
+		void Emit(const std::string& str, const std::string& comment = "");
 
 		std::string codeblock;
 
@@ -281,6 +281,7 @@ namespace sb
 		//case node::binary_selection:
 		//	return 15;
 		}
+		return 0;
 	}
 
 	inline std::string Parenthesize(const std::string& str, detail::node::OpType currentOp, detail::node::OpType parentOp)
@@ -294,13 +295,18 @@ namespace sb
 			(node::functionCall == parentOp) ||
 			(node::builtin_variable == currentOp) ||
 			(node::uninitialised == parentOp) ||
+			(node::array_declaration == currentOp) ||
+			(node::dependency == currentOp) ||
 			(node::cast == currentOp) ||
 			(node::cast == parentOp))
 		{
 			return str;
 		}
 
-		if (GetPrecedence(parentOp) < GetPrecedence(currentOp))
+		int p1 = GetPrecedence(currentOp);
+		int p2 = GetPrecedence(parentOp);
+
+		if (p2 < p1 || p1 == 0)
 		{
 			return "(" + str + ")";
 		}
@@ -349,7 +355,7 @@ namespace sb
 		}
 		else if (node::arrayLookup == n->optype)
 		{
-			expression = Accept(n->childs[1], n->optype) + "[" + Accept(n->childs[0]) + "]";
+			expression = Accept(n->childs[0], n->optype) + "[" + Accept(n->childs[1]) + "]";
 		}
 		else if (node::cast == n->optype)
 		{
@@ -374,6 +380,27 @@ namespace sb
 			}
 			ss << ")";
 			expression = ss.str();
+		}
+		else if (node::uninitialised == n->optype)
+		{
+			n->InitId(id);
+			expression = tokenGen.GetType(n) + " " + n->GetId();
+			Emit(expression, "Warning, variable is used but might be unset.");
+			expression = n->GetId();
+		}
+		else if (node::array_declaration == n->optype)
+		{
+			std::stringstream ss;
+			n->InitId(id);
+			ss << tokenGen.GetType(n) << " " << n->GetId() << "[" << n->arraySize << "]";
+			expression = ss.str();
+			Emit(expression);
+			return n->GetId();
+		}
+		else if (node::dependency == n->optype)
+		{
+			Accept(n->childs[0]);
+			expression = Accept(n->childs[1]);
 		}
 
 		bool purge = false;
@@ -404,7 +431,7 @@ namespace sb
 		return Parenthesize(expression, n->optype, parentOp);
 	}
 
-	void context::Emit(const std::string& str)
+	void context::Emit(const std::string& str, const std::string& comment)
 	{
 		std::stringstream ss;
 
@@ -413,8 +440,14 @@ namespace sb
 			ss << "\t";
 		}
 
-		ss << str << ";\n";
-
+		ss << str << ";";
+		
+		if (comment.size() != 0)
+		{
+			ss << "\t\\\\ " << comment;
+		}
+		
+		ss << "\n";
 		codeblock += ss.str();
 	}
 }

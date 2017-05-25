@@ -24,33 +24,58 @@
 #define POD_uvec int
 #define POD_bvec bool
 
+namespace sb
+{
+	namespace detail
+	{
+		template<typename T1, typename T2>
+		T1 simple_assign(T1& this_, const T2& x)
+		{
+			bool io_node = (this_.src->optype & detail::node::storage_bit) != 0 || (this_.src->optype == detail::node::builtin_variable) != 0;
+			bool io_assign_node = 
+				(this_.src->optype & detail::node::assign_bit) != 0 &&
+				(this_.src->childs.size() > 0) && 
+				((this_.src->childs[0]->optype & detail::node::storage_bit) != 0 || (this_.src->childs[0]->optype == detail::node::builtin_variable) != 0);
+			bool arrayLookUp = (this_.src->optype & detail::node::arrayLookup) != 0;
+			if (io_node || io_assign_node || arrayLookUp)
+			{
+				T1 result; 
+				detail::nodePtr oldsrc; 
+			
+				if (io_assign_node)
+				{
+					oldsrc = this_.src->childs[0];
+				}
+				else 
+				{
+					oldsrc = this_.src;
+				}
+				
+				this_.src = result.src;
+				this_.src->optype = detail::node::assign;
+				this_.src->childs.push_back(oldsrc);
+				this_.src->childs.push_back(x.src);
+				if (!this_.shell.expired())
+				{ 
+					this_.shell.lock()->n = this_.src;
+				} 
+				return this_;
+			}
+			else 
+			{
+				this_.src = x.src;
+				/* shell is ignored */
+				return this_;
+			}
+		}
+	}
+}
+
 #define simple_assignop(T1, T2, S)\
 	/* Assign operator, like T1 a; a = T2(); Not trivial for input-output variables */ \
 	/* Inside class definition */ \
 	T1##S operator = (const T2##S& x) { \
-		bool io_node = (src->optype & detail::node::storage_bit) != 0 || (src->optype == detail::node::builtin_variable) != 0; \
-		bool io_assign_node = (src->childs.size() > 0) && (src->childs[0]->optype & detail::node::storage_bit) != 0; \
-		if (io_node || io_assign_node) {\
-			T1##S result; \
-			detail::nodePtr oldsrc; \
-			if (io_assign_node) {\
-				oldsrc = src->childs[0]; \
-			} else {\
-				oldsrc = src; \
-			} \
-			src = result.src; \
-			src->optype = detail::node::assign; \
-			src->childs.push_back(oldsrc); \
-			src->childs.push_back(x.src); \
-			if (!shell.expired()) { \
-				shell.lock()->n = src; \
-			} \
-			return *this; \
-		} else { \
-			src = x.src; \
-			/* shell is ignored */ \
-			return *this; \
-		} \
+		return detail::simple_assign<T1##S, T2##S>(*this, x); \
 	}
 
 	// Sets collection of typecast operators to T type

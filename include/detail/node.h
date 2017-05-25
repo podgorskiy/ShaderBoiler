@@ -60,6 +60,8 @@ namespace sb
 				functionCall,
 				arrayLookup,
 				builtin_variable,
+				array_declaration,
+				dependency,
 
 				binary_bit = bit_table << 0,
 				binary_addition,
@@ -192,6 +194,7 @@ namespace sb
 			DataType datatype;
 			DataSize datasize;
 			DataSize datasize_secondary;
+			int arraySize = 0;
 			int pointersTo = 0;
 
 		private:

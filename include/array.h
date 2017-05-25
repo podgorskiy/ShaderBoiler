@@ -24,22 +24,42 @@ namespace sb
 	class array : public detail::typed_variable<static_cast<detail::node::DataType>(T::type), static_cast<detail::node::DataSize>(T::sizeM), static_cast<detail::node::DataSize>(T::sizeN)>
 	{
 	public:
-		array(int size) : size(size), shell(new detail::nodeshell(src))
+		array(int size) : size(size), strongPtrShell(new detail::nodeshell(src))
 		{
+			src->optype = detail::node::array_declaration;
+			src->arraySize = size;
 		}
-		array(const std::string name) : name(name), shell(new detail::nodeshell(src))
+		array(const std::string name) : name(name), strongPtrShell(new detail::nodeshell(src))
 		{
+			src->optype = detail::node::array_declaration;
 		}
 		ivec1 length()
 		{
-
+			return size;
 		}
 		T& operator[](ivec1 i)
 		{
 			T* result = new T();
 			result->src->optype = detail::node::arrayLookup;
+
+			if (strongPtrShell->n != src)
+			{
+				detail::nodePtr junction(new detail::node());
+
+				junction->optype = detail::node::dependency;
+				junction->childs.push_back(strongPtrShell->n);
+				junction->childs.push_back(src);
+
+				result->src->childs.push_back(junction);
+			}
+			else
+			{
+				result->src->childs.push_back(src);
+			}
+
 			result->src->childs.push_back(i.src);
-			result->src->childs.push_back(shell->n);
+			
+			shell = strongPtrShell;
 
 			result->shell = shell;
 
@@ -47,7 +67,7 @@ namespace sb
 			return *result;
 		}
 	private:
-		detail::nodeshellPtr shell;
+		detail::nodeshellPtr strongPtrShell;
 		std::list<detail::varPtr> garbageVars; // destroyed when array is destoyed
 		std::string name;
 		int size = -1;
