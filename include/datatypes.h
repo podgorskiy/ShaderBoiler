@@ -36,7 +36,7 @@ namespace sb
 				(this_.src->optype & detail::node::assign_bit) != 0 &&
 				(this_.src->childs.size() > 0) && 
 				((this_.src->childs[0]->optype & detail::node::storage_bit) != 0 || (this_.src->childs[0]->optype == detail::node::builtin_variable) != 0);
-			bool arrayLookUp = (this_.src->optype & detail::node::arrayLookup) != 0;
+			bool arrayLookUp = (this_.src->optype == detail::node::arrayLookup) != 0;
 			bool memberAccess = (this_.src->optype == detail::node::memberAccess) != 0;
 			if (io_node || io_assign_node || arrayLookUp)
 			{
@@ -57,7 +57,7 @@ namespace sb
 				this_.src->childs.push_back(oldsrc);
 				this_.src->childs.push_back(x.src);
 
-				if (memberAccess)
+				if (memberAccess || arrayLookUp)
 				{
 					if (this_.ptrToSrcPtr)
 					{

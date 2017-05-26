@@ -23,15 +23,15 @@ namespace sb
 	namespace detail
 	{
 		template<typename T>
-		void SetStrongShellPointer(T& var, detail::nodeshellPtr ptr)
+		void PropagatePointerToParent(T& var, detail::nodePtr* ptr)
 		{
 		}
 
 		// Needed to propagate shell pointer through multidimentional arrays.
 		template<typename T, int S>
-		void SetStrongShellPointer(array<T, S>& var, detail::nodeshellPtr ptr)
+		void PropagatePointerToParent(array<T, S>& var, detail::nodePtr* ptr)
 		{
-			var.strongPtrShell = ptr;
+			var.ptrToParentSrc = ptr;
 		}
 
 		template<typename T>
@@ -50,14 +50,15 @@ namespace sb
 	template<typename T, int S>
 	class array : public detail::typed_variable<static_cast<detail::node::DataType>(T::type), static_cast<detail::node::DataSize>(T::sizeM), static_cast<detail::node::DataSize>(T::sizeN)>
 	{
+		template<typename T, int S> friend void detail::PropagatePointerToParent(array<T, S>& var, detail::nodePtr* ptr);
 	public:
-		array(): strongPtrShell(new detail::nodeshell(src))
+		array(): ptrToParentSrc(&src)
 		{
 			src->optype = detail::node::array_declaration;
 			src->arraySize.push_back(S);
 			PushArraySize((T*)(nullptr), src->arraySize);
 		}
-		array(const std::string name) : name(name), strongPtrShell(new detail::nodeshell(src))
+		array(const std::string name) : name(name), ptrToParentSrc(&src)
 		{
 			src->optype = detail::node::array_declaration;
 			src->arraySize.push_back(S);
@@ -71,30 +72,28 @@ namespace sb
 		{
 			T* result = new T();
 
-			SetStrongShellPointer(*result, strongPtrShell);
+			PropagatePointerToParent(*result, ptrToParentSrc);
 
 			result->src->optype = detail::node::arrayLookup;
 
-			if (strongPtrShell->n != src)
+			if (originalsrc == src)
+			{
+				result->src->childs.push_back(src);
+			}
+			else
 			{
 				detail::nodePtr junction(new detail::node());
 
 				junction->optype = detail::node::dependency;
-				junction->childs.push_back(strongPtrShell->n);
 				junction->childs.push_back(src);
+				junction->childs.push_back(originalsrc);
 
 				result->src->childs.push_back(junction);
-			}
-			else
-			{
-				result->src->childs.push_back(src);
 			}
 
 			result->src->childs.push_back(i.src);
 			
-			shell = strongPtrShell;
-
-			result->shell = shell;
+			result->ptrToSrcPtr = ptrToParentSrc;
 
 			garbageVars.push_back(detail::varPtr(result));
 			return *result;
@@ -102,13 +101,12 @@ namespace sb
 
 		array<T, S>& SetName(const std::string& name)
 		{
-			src->name = name;
+			originalsrc->name = name;
 			return *this;
 		}
 
-		detail::nodeshellPtr strongPtrShell;
-
 	private:
+		detail::nodePtr* ptrToParentSrc;
 		std::string name;
 	};
 }
