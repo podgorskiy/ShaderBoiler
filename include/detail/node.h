@@ -114,11 +114,11 @@ namespace sb
 				assign_xor,
 
 				storage_bit = bit_table << 5,
+				storage_uniform,
+				storage_attribute,
+				storage_varying,
 				storage_input,
 				storage_output,
-				storage_attribute,
-				storage_uniform,
-				storage_varying,
 				storage_buffer,
 				storage_shared,
 			};

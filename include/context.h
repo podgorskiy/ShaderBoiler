@@ -199,6 +199,14 @@ namespace sb
 			visitedNodes.insert(n);
 		}
 	}
+	
+	struct IOSortingFunctor
+	{
+		bool operator()(const detail::nodePtr& a, const detail::nodePtr& b) const
+		{
+			return (int)a->optype < (int)b->optype;
+		}
+	};
 
 	inline std::string context::GenerateCode()
 	{
@@ -211,12 +219,22 @@ namespace sb
 
 		std::stringstream ss;
 
+		ioVariablesList.sort(IOSortingFunctor());
+
+		detail::node::OpType curentType = ioVariablesList.size() > 0 ? ioVariablesList.begin()->get()->optype : detail::node::storage_bit;
+
 		for (std::list<nodePtr>::iterator it = ioVariablesList.begin(); it != ioVariablesList.end(); ++it)
 		{
 			visitedNodes.insert(*it);
 			(*it)->InitWithIdId(id);
 
 			std::stringstream ss;
+
+			if ((*it)->optype != curentType)
+			{
+				curentType = (*it)->optype;
+				ss << "\n";
+			}
 
 			ss << tokenGen.GetStorageQualifier((*it)->optype) << tokenGen.GetType(*it) << " " << (*it)->GetId();
 
@@ -345,7 +363,7 @@ namespace sb
 
 		if (node::assign_bit & n->optype)
 		{
-			if (!parentOpModifies && n->childs[0]->pointersTo == 1 && node::assign == n->optype && n->childs[0]->optype != node::arrayLookup && n->childs[0]->optype != node::memberAccess)
+			if (!parentOpModifies && n->pointersTo == 1 && node::assign == n->optype && parentOp != node::dependency)
 			{
 				return Accept(n->childs[1], parentOp);
 			}
@@ -441,7 +459,7 @@ namespace sb
 		}
 		else if (node::dependency == n->optype)
 		{
-			Accept(n->childs[0]);
+			Accept(n->childs[0], n->optype);
 			n->childs[0]->MarkInitialised(); // needed if lhs is not named
 			expression = Accept(n->childs[1]);
 			n->CopyIdFrom(n->childs[1]); // assignment node is different from it's first argument node, but we want to preserve the same name
