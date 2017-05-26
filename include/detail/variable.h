@@ -31,7 +31,7 @@ namespace sb
 		class variable
 		{
 		public:
-			variable() : src(nodePtr(new node())), originalsrc(src), ptrToSrcPtr(nullptr)
+			variable() : src(nodePtr(new node())), ptrToSrcPtr(nullptr)
 			{}
 
 			// Pointer to a node in compute graph
@@ -41,10 +41,8 @@ namespace sb
 			nodePtr originalsrc;
 
 			// This pointer is not null only for reference variables (output variable, return of subscript operator on array, etc.). 
-			// It is a pointer to the record (which is a pointer to the value variable), which is used to replace the value node if the it was modified by the reference. 
-			nodeshellPtr shell;
-
-			nodeGrandPtr ptrToSrcPtr;
+			// It is a pointer to the smartpointger to the node in compute graph, which is used to replace the pointer to the node if the reference to the variable was assigned to. 
+			nodePtr* ptrToSrcPtr;
 		};
 
 		typedef std::shared_ptr<variable> varPtr;

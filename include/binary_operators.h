@@ -30,16 +30,8 @@
 #define assignop(T1, T2, X, E)\
 	/* Assign operator, like T1 a; a += T2(); */ \
 	/* Outside class definition */ \
-	T1 operator X (T1&a, const T2& b) { \
-		T1 result; \
-		result.src->optype = detail::node::##E; \
-		result.src->childs.push_back(a.src); \
-		result.src->childs.push_back(b.src); \
-		a.src = result.src; \
-		if (a.shell) { \
-			a.shell->n = a.src; \
-		} \
-		return a; \
+	T1& operator X (T1&a, const T2& b) { \
+		return detail::assign_operation<T1, T2>(a, b, detail::node::##E); \
 	}
 
 #define op_ariphm(T1, T2, T3)\

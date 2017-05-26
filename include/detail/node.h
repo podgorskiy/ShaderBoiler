@@ -177,7 +177,7 @@ namespace sb
 				}
 				else
 				{
-					assert(false);
+					//assert(false);
 				}
 			}
 
@@ -190,6 +190,7 @@ namespace sb
 			{
 				id = other->id;
 				name = other->name;
+				initialised = true;
 			}
 
 			OpType optype = uninitialised;
@@ -206,20 +207,6 @@ namespace sb
 		private:
 			bool initialised = false;
 			int id = -1;
-		};
-
-		struct nodeshell;
-
-		typedef std::weak_ptr<nodeshell> nodeshellWeakPtr;
-		typedef std::shared_ptr<nodeshell> nodeshellPtr;
-		typedef nodePtr* nodeGrandPtr;
-
-		struct nodeshell
-		{
-			nodeshell(nodePtr n) : n(n)
-			{}
-
-			nodePtr n;
 		};
 	}
 }

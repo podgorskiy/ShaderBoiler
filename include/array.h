@@ -76,9 +76,10 @@ namespace sb
 
 			result->src->optype = detail::node::arrayLookup;
 
-			if (originalsrc == src)
+			if (!originalsrc || src == originalsrc)
 			{
 				result->src->childs.push_back(src);
+				originalsrc = src;
 			}
 			else
 			{
@@ -101,7 +102,14 @@ namespace sb
 
 		array<T, S>& SetName(const std::string& name)
 		{
-			originalsrc->name = name;
+			if (originalsrc)
+			{
+				originalsrc->name = name;
+			}
+			else
+			{
+				src->name = name;
+			}
 			return *this;
 		}
 

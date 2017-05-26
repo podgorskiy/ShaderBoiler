@@ -21,7 +21,7 @@
 #define POD_vec  float
 #define POD_dec  double
 #define POD_ivec int
-#define POD_uvec int
+#define POD_uvec unsigned int
 #define POD_bvec bool
 
 namespace sb
@@ -29,57 +29,27 @@ namespace sb
 	namespace detail
 	{
 		template<typename T1, typename T2>
-		T1 simple_assign(T1& this_, const T2& x)
+		T1& assign_operation(T1& this_, const T2& x, detail::node::OpType t = detail::node::assign)
 		{
-			bool io_node = (this_.src->optype & detail::node::storage_bit) != 0 || (this_.src->optype == detail::node::builtin_variable) != 0;
-			bool io_assign_node = 
-				(this_.src->optype & detail::node::assign_bit) != 0 &&
-				(this_.src->childs.size() > 0) && 
-				((this_.src->childs[0]->optype & detail::node::storage_bit) != 0 || (this_.src->childs[0]->optype == detail::node::builtin_variable) != 0);
-			bool arrayLookUp = (this_.src->optype == detail::node::arrayLookup) != 0;
-			bool memberAccess = (this_.src->optype == detail::node::memberAccess) != 0;
-			if (io_node || io_assign_node || arrayLookUp)
-			{
-				T1 result; 
-				detail::nodePtr oldsrc; 
-			
-				if (io_assign_node)
-				{
-					oldsrc = this_.src->childs[0];
-				}
-				else 
-				{
-					oldsrc = this_.src;
-				}
-				
-				this_.src = result.src;
-				this_.src->optype = detail::node::assign;
-				this_.src->childs.push_back(oldsrc);
-				this_.src->childs.push_back(x.src);
+			T1 result;
 
-				if (memberAccess || arrayLookUp)
-				{
-					if (this_.ptrToSrcPtr)
-					{
-						*this_.ptrToSrcPtr = this_.src;
-					}
-				}
-				else
-				{
-					if (this_.shell)
-					{
-						this_.shell->n = this_.src;
-					}
-				}
+			result.src->optype = t;
+			result.src->childs.push_back(this_.src);
+			result.src->childs.push_back(x.src);
 
-				return this_;
-			}
-			else 
+			this_.src = result.src;
+
+			if (this_.ptrToSrcPtr)
 			{
-				this_.src = x.src;
-				/* shell is ignored */
-				return this_;
+				detail::nodePtr junction(new detail::node());
+				junction->optype = detail::node::dependency;
+				junction->childs.push_back(this_.src);
+				junction->childs.push_back(*this_.ptrToSrcPtr);
+
+				*this_.ptrToSrcPtr = junction;
 			}
+
+			return this_;
 		}
 	}
 }
@@ -191,8 +161,8 @@ namespace sb
 #define simple_assignop(T1, T2, S)\
 	/* Assign operator, like T1 a; a = T2(); Not trivial for input-output variables */ \
 	/* Inside class definition */ \
-	T1##S operator = (const T2##S& x) { \
-		return detail::simple_assign<T1##S, T2##S>(*this, x); \
+	T1##S& operator = (const T2##S& x) { \
+		return detail::assign_operation<T1##S, T2##S>(*this, x); \
 	}
 
 	// Sets collection of typecast operators to T type
@@ -259,8 +229,7 @@ namespace sb
 #define default_constructors(T, S) \
 		T##S() {}; \
 		T##S(const T##S& other) { \
-		 src = other.src; \
-		 /* shell is ignored */ \
+			detail::assign_operation<T##S, T##S>(*this, other); \
 		}; \
 		T##S(const std::string& name): typed_variable(name) {}; \
 		T##S(const std::string& name, detail::node::OpType t): typed_variable(name, t) {}; \
@@ -385,9 +354,10 @@ namespace sb
 			T1* result = new T1();
 			result->src->optype = detail::node::memberAccess;
 			result->src->fname = m;
-			if (this_->src == this_->originalsrc)
+			if (!this_->originalsrc || this_->src == this_->originalsrc)
 			{
 				result->src->childs.push_back(this_->src);
+				this_->originalsrc = this_->src;
 			}
 			else
 			{

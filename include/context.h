@@ -37,6 +37,7 @@ namespace sb
 		{
 			T v(name);
 			v.src->optype = detail::node::storage_uniform;
+			v.originalsrc = v.src;
 			return v;
 		}
 
@@ -109,9 +110,8 @@ namespace sb
 		template<typename T>
 		void Register(T& x)
 		{
-			detail::nodeshellPtr shell(new detail::nodeshell(x.src));
-			x.shell = shell;
-			targetList.push_back(shell);
+			targetList.push_back(x.src);
+			x.ptrToSrcPtr = &targetList.back();
 		}
 
 		class IndentGuard
@@ -127,13 +127,13 @@ namespace sb
 
 		void VisitNode(detail::nodePtr n, std::list<detail::nodePtr>& defaultList);
 
-		std::string Accept(detail::nodePtr n, detail::node::OpType parentOp = detail::node::uninitialised);
+		std::string Accept(detail::nodePtr n, detail::node::OpType parentOp = detail::node::uninitialised, bool parentOpModifies = false);
 		void Emit(const std::string& str, const std::string& comment = "");
 
 		std::string codeblock;
 
 		detail::token_generator tokenGen;
-		std::list<detail::nodeshellPtr> targetList;
+		std::list<detail::nodePtr> targetList;
 		std::list<detail::nodePtr> ioVariablesList;
 		std::list<std::list<detail::nodePtr> > listOffunctionNodesList;
 		std::list<detail::nodePtr> mainBlockList;
@@ -153,9 +153,9 @@ namespace sb
 		visitedNodes.clear();
 
 		// Visiting the target forest
-		for (std::list<nodeshellPtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
+		for (std::list<nodePtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
 		{
-			VisitNode((*it)->n, mainBlockList);
+			VisitNode(*it, mainBlockList);
 		}
 
 		for (std::set<nodePtr>::iterator it = visitedNodes.begin(); it != visitedNodes.end(); ++it)
@@ -169,8 +169,11 @@ namespace sb
 			{
 				(*it)->pointersTo++;
 			}
+		}		
+		for (std::list<nodePtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
+		{
+			(*it)->pointersTo = 2;
 		}
-		
 		return GenerateCode();
 	}
 
@@ -232,9 +235,9 @@ namespace sb
 		{
 			IndentGuard ig(this);
 
-			for (std::list<nodeshellPtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
+			for (std::list<nodePtr>::iterator it = targetList.begin(); it != targetList.end(); ++it)
 			{
-				Accept((*it)->n);
+				Accept(*it);
 
 				ss << codeblock;
 				codeblock.clear();
@@ -242,6 +245,7 @@ namespace sb
 		}
 		ss << "}\n";
 
+		targetList.clear();
 		return ss.str();
 	}
 
@@ -328,7 +332,7 @@ namespace sb
 		}
 	}
 
-	inline std::string context::Accept(detail::nodePtr n, detail::node::OpType parentOp)
+	inline std::string context::Accept(detail::nodePtr n, detail::node::OpType parentOp, bool parentOpModifies)
 	{
 		using namespace detail;
 
@@ -341,9 +345,25 @@ namespace sb
 
 		if (node::assign_bit & n->optype)
 		{
-			Emit(Accept(n->childs[0]) + tokenGen.GetAssignOperator(n->optype) + Accept(n->childs[1], n->optype));
-			n->CopyIdFrom(n->childs[0]); // assignment node is different from it's first argument node, but we want to preserve the same name
-			return Accept(n->childs[0]);
+			if (!parentOpModifies && n->childs[0]->pointersTo == 1 && node::assign == n->optype && n->childs[0]->optype != node::arrayLookup && n->childs[0]->optype != node::memberAccess)
+			{
+				return Accept(n->childs[1], parentOp);
+			}
+
+			if (n->optype == node::assign && n->childs[0]->optype == node::uninitialised)
+			{
+				n->childs[0]->InitWithIdId(id);
+				expression = tokenGen.GetType(n->childs[0]) + " " + n->childs[0]->GetId();
+				Emit(expression + tokenGen.GetAssignOperator(n->optype) + Accept(n->childs[1], n->optype));
+				n->CopyIdFrom(n->childs[0]); // assignment node is different from it's first argument node, but we want to preserve the same name
+				return Accept(n->childs[0]);
+			}
+			else
+			{
+				Emit(Accept(n->childs[0], n->optype, true) + tokenGen.GetAssignOperator(n->optype) + Accept(n->childs[1], n->optype));
+				n->CopyIdFrom(n->childs[0]); // assignment node is different from it's first argument node, but we want to preserve the same name
+				return Accept(n->childs[0]);
+			}
 		}
 		else if (node::binary_bit & n->optype)
 		{
@@ -395,7 +415,7 @@ namespace sb
 		}
 		else if (node::memberAccess == n->optype)
 		{
-			expression = Accept(n->childs[0]) + "." + n->fname;
+			expression = Accept(n->childs[0], n->optype, parentOpModifies) + "." + n->fname;
 		}
 		else if (node::uninitialised == n->optype)
 		{
@@ -424,6 +444,7 @@ namespace sb
 			Accept(n->childs[0]);
 			n->childs[0]->MarkInitialised(); // needed if lhs is not named
 			expression = Accept(n->childs[1]);
+			n->CopyIdFrom(n->childs[1]); // assignment node is different from it's first argument node, but we want to preserve the same name
 		}
 
 		bool purge = false;
@@ -438,7 +459,7 @@ namespace sb
 			purge = true;
 		}
 
-		if ((node::storage_bit & n->optype) || (node::builtin_variable == n->optype))
+		if ((node::storage_bit & n->optype) || (node::builtin_variable == n->optype) || (node::dependency == n->optype))
 		{
 			purge = false;
 		}
