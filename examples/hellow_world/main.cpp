@@ -4,54 +4,30 @@
 void main()
 {
 	using namespace sb;
-	using namespace sb::gl440;
-	using namespace sb::fs;
-
-	{
-		context ctx;
-		vec4 AmbientColor           = ctx.uniform<vec4>("AmbientColor");
-		vec3 normal                 = ctx.in<vec3>("normal");
-		vec3 vertex_to_light_vector = ctx.in<vec3>("vertex_to_light_vector");
-
-		array<vec3> lights = ctx.uniform<array<vec3> >("lights[5]");
-
-		lights[0] = vec3(0.0);
-
-		vec3 b = lights[0];
-
-		// Defining The Material Colors
-		const vec4 DiffuseColor = vec4(1.0, 0.0, 0.0, 1.0).SetName("DiffuseColor");
-
-		ivec1 a = gl_MaxProgramTexelOffset;
-
-		// Scaling The Input Vector To Length 1
-		//vec3 normalized_normal = normalize(normal);
-		vec3 normalized_normal = normal;
-		//vec3 normalized_vertex_to_light_vector = normalize(vertex_to_light_vector);
-		vec3 normalized_vertex_to_light_vector = vertex_to_light_vector * 2;
-
-		// Calculating The Diffuse Term And Clamping It To [0;1]
-		Float DiffuseTerm = max(dot(normal, vertex_to_light_vector + b), 0.0).SetName("DiffuseTerm");
-
-		AmbientColor += DiffuseTerm;
-
-		// Calculating The Final Color
-		ctx[fs::gl_FragColor] = AmbientColor + DiffuseColor * DiffuseTerm;
-
-		std::cout << ctx.genShader();
-	}
-	std::cout << "Test3" << "\n";
 
 	context ctx;
-	vec2 a = ctx.in<vec2>("a");
-	vec2 b = ctx.in<vec2>("b");
-	vec2 d = ctx.out<vec2>("d");
+	vec3 AlbedoColor           = ctx.uniform<vec3>("AlbedoColor");
+	vec3 AmbientLightColor     = ctx.uniform<vec3>("AmbientLightColor");
+	vec3 DirectLightColor      = ctx.uniform<vec3>("DirectLightColor");
+	vec3 LightPosition         = ctx.uniform<vec3>("LightPosition");
 
-	vec2 g(1.0f, 2.0f);
+	vec3 normal   = ctx.in<vec3>("normal");
+	vec3 position = ctx.in<vec3>("position");
+	vec4& color   = ctx.out<vec4>("color");
 
-	a = 3.0f * (a + b * 1.0f) * g;
+	vec3 normalized_normal = normalize(normal);
 
-	d = a * (a * 1.0f);
+	vec3 fragmentToLight = LightPosition - position;
+
+	Float squaredDistance = dot(fragmentToLight, fragmentToLight);
+
+	vec3 normalized_fragmentToLight = fragmentToLight / sqrt(squaredDistance);
+
+	Float NdotL = dot(normal, normalized_fragmentToLight);
+
+	vec3 DiffuseTerm = max(NdotL, 0.0) * DirectLightColor / squaredDistance;
+
+	color = vec4(AlbedoColor * (AmbientLightColor + DiffuseTerm), 1.0);
 
 	std::cout << ctx.genShader();
 }
