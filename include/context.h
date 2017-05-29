@@ -354,28 +354,57 @@ namespace sb
 	{
 		using namespace detail;
 
+		// Node was already visited. That means, it has to edges going to it, thus it was instantiated.
 		if (n->Initialised())
 		{
 			return n->GetId();
+		}
+
+		// Assign chain contraction, while preserving assigned name.
+		if (node::assign == n->optype && 
+			node::uninitialised == n->childs[0]->optype &&
+			node::assign == n->childs[1]->optype &&
+			node::uninitialised == n->childs[1]->childs[0]->optype &&
+			n->childs[1]->childs[0]->pointersTo == 1)
+		{
+			std::string name = n->childs[1]->childs[0]->name;			
+			if (n->childs[0]->name.size() > 0)
+			{
+				name = n->childs[0]->name;
+			}
+			n->childs[1]->childs[0] = n->childs[0];
+			n->childs[1]->childs[0]->name = name;
+			return Accept(n->childs[1], parentOp);
 		}
 
 		std::string expression;
 
 		if (node::assign_bit & n->optype)
 		{
-			if (!parentOpModifies && n->pointersTo == 1 && node::assign == n->optype && parentOp != node::dependency)
+			// If parent node does to modify current node
+			// If there is only one edge going to current node
+			// If current node is assign operation
+			// If parent node was not a dependecy node (all nodes that are dependencies to other nodes, must be instantiated)
+			// If no name assigned to current node
+			// Then current node can be converted to a temporary object, thus no instantiation happens
+			if (!parentOpModifies && n->pointersTo == 1 && node::assign == n->optype && parentOp != node::dependency && n->name.size() == 0)
 			{
 				return Accept(n->childs[1], parentOp);
 			}
 
+			// Otherwise assignement is instantiated to:
+
+			// A new variable, if child to which assignment happens is uninitialised
 			if (n->optype == node::assign && n->childs[0]->optype == node::uninitialised)
 			{
+				n->childs[0]->name = n->name;
 				n->childs[0]->InitWithIdId(id);
 				expression = tokenGen.GetType(n->childs[0]) + " " + n->childs[0]->GetId();
 				Emit(expression + tokenGen.GetAssignOperator(n->optype) + Accept(n->childs[1], n->optype));
 				n->CopyIdFrom(n->childs[0]); // assignment node is different from it's first argument node, but we want to preserve the same name
 				return Accept(n->childs[0]);
 			}
+			// Or assignment happens to already existing variable, thas a modification happens, note argument 'true' in 'Accept' call.
 			else
 			{
 				Emit(Accept(n->childs[0], n->optype, true) + tokenGen.GetAssignOperator(n->optype) + Accept(n->childs[1], n->optype));

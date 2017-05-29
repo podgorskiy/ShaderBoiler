@@ -51,6 +51,13 @@ namespace sb
 
 			return this_;
 		}
+
+		template<typename T>
+		T& SetName(const std::string& name, T& var)
+		{
+			var.src->name = name;
+			return var;
+		}
 	}
 }
 
@@ -233,10 +240,7 @@ namespace sb
 		}; \
 		T##S(const std::string& name): typed_variable(name) {}; \
 		T##S(const std::string& name, detail::node::OpType t): typed_variable(name, t) {}; \
-		T##S& SetName(const std::string& name) { \
-			src->name = name; \
-			return *this; \
-		}
+		T##S& SetName(const std::string& name) { return detail::SetName(name, *this); }
 
 #define class_vec_dec_size(T, S) class T##S
 
