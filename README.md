@@ -348,4 +348,4 @@ void main(void)
 }
 ```
 
-Note, that assignment *vec4(0.0)* to the *color* overridden previous manipulations.
+Note, that assignment *vec4(0.0)* to the *color* overrides previous manipulations.
