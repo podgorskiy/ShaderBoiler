@@ -50,7 +50,7 @@ namespace sb
 		template<node::DataType T, node::DataSize S, node::DataSize S2 = node::size1>
 		class typed_variable : public variable
 		{
-			template<typename T, int S> friend class ::sb::array;
+			template<typename ArrayT, int ArrayS> friend class ::sb::array;
 			template<typename T1, typename T2> friend T1& ::sb::detail::GenerateSwizzle(T2*, const char*);
 		public:
 			typed_variable()

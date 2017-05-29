@@ -130,7 +130,7 @@ namespace sb
 			template <typename K>
 			const std::string& TableLookup(const std::map <K, std::string>& map, K key) const
 			{
-				std::map<K, std::string>::const_iterator it = map.find(key);
+				typename std::map<K, std::string>::const_iterator it = map.find(key);
 				if (it == map.end())
 				{
 					return invalidToken;
