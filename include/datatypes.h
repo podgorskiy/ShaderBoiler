@@ -242,7 +242,7 @@ namespace sb
 
 #define class_vec_def_size1(T) \
 	/* All vectors of size 1: vec1, ivec1, uvec1, bvec1, dvec1*/ \
-	class T##1: public detail::typed_variable<detail::node::DataType::##T, detail::node::DataSize(1)>{ \
+	class T##1: public detail::typed_variable<detail::node::T, detail::node::DataSize(1)>{ \
 	public: \
 		/* Default constructor */ \
 		default_constructors(T, 1); \
@@ -257,7 +257,7 @@ namespace sb
 
 #define class_vec_def_size2(T) \
 	/* All vectors of size 2: vec2, ivec2, uvec2, bvec2, dvec2*/ \
-	class T##2: public detail::typed_variable<detail::node::DataType::##T, detail::node::DataSize(2)>{ \
+	class T##2: public detail::typed_variable<detail::node::T, detail::node::DataSize(2)>{ \
 	public: \
 		default_constructors(T, 2); \
 		cast_from_scalar(T, 2); \
@@ -272,7 +272,7 @@ namespace sb
 
 #define class_vec_def_size3(T) \
 	/* All vectors of size 3: vec3, ivec3, uvec3, bvec3, dvec3*/ \
-	class T##3: public detail::typed_variable<detail::node::DataType::##T, detail::node::DataSize(3)>{ \
+	class T##3: public detail::typed_variable<detail::node::T, detail::node::DataSize(3)>{ \
 	public: \
 		default_constructors(T, 3); \
 		cast_from_scalar(T, 3); \
@@ -288,7 +288,7 @@ namespace sb
 
 #define class_vec_def_size4(T) \
 	/* All vectors of size 4: vec4, ivec4, uvec4, bvec4, dvec4*/ \
-	class T##4: public detail::typed_variable<detail::node::DataType::##T, detail::node::DataSize(4)>{ \
+	class T##4: public detail::typed_variable<detail::node::T, detail::node::DataSize(4)>{ \
 	public: \
 		default_constructors(T, 4); \
 		cast_from_scalar(T, 4); \
@@ -306,7 +306,7 @@ namespace sb
 	}
 
 #define class_mat_def_(T, PT, M, N, MbyN) \
-	class T##M##x##N: public detail::typed_variable<detail::node::DataType::##T, detail::node::DataSize(M), detail::node::DataSize(N)>{ \
+	class T##M##x##N: public detail::typed_variable<detail::node::T, detail::node::DataSize(M), detail::node::DataSize(N)>{ \
 	public: \
 		T##M##x##N() {}; \
 		T##M##x##N(POD_##PT f) { REPEAT_ASSIGNMENT(src->data[(N + 1) *, ].d_##PT, f, M); src->optype = detail::node::OpType::o##PT; }; \
@@ -407,14 +407,6 @@ namespace sb
 	class_vec_methods_def(uvec);
 	// bool vector
 	class_vec_methods_def(bvec);
-
-	class_mat_def(mat, vec, 2, 2);
-	class_mat_def(mat, vec, 3, 3);
-	class_mat_def(mat, vec, 4, 4);
-
-	typedef mat2x2 mat2;
-	typedef mat3x3 mat3;
-	typedef mat4x4 mat4;
 
 	typedef vec1 Float;
 	typedef ivec1 Int;
