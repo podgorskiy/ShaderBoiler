@@ -1,7 +1,7 @@
 #include <shaderboiler.h>
 #include <iostream>
 
-void main()
+int main()
 {
 	using namespace sb;
 
@@ -30,4 +30,6 @@ void main()
 	color = vec4(AlbedoColor * (AmbientLightColor + DiffuseTerm), 1.0);
 
 	std::cout << ctx.genShader();
+
+	return 0;
 }
