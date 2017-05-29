@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.12)
 
 project(ShaderBoiler)
 
-option(SB_BUILD_EXAMPLES "Build the GLFW example programs" ON)
+option(SB_BUILD_EXAMPLES "Build shaderboiler examples" ON)
 
 include_directories(include)
 
