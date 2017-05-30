@@ -6,6 +6,13 @@ matrix:
     - compiler: clang
       os: osx
 
+addons:
+  apt:
+    packages:
+    - gcc-5.1
+    - g++-5.1
+    - clang
+
 script:
   - mkdir build && cd build
   - cmake ..
