@@ -29,7 +29,7 @@ namespace sb
 	namespace detail
 	{
 		template<typename T1, typename T2>
-		T1& assign_operation(T1& this_, const T2& x, detail::node::OpType t = detail::node::assign)
+		inline T1& assign_operation(T1& this_, const T2& x, detail::node::OpType t = detail::node::assign)
 		{
 			T1 result;
 
@@ -53,7 +53,7 @@ namespace sb
 		}
 
 		template<typename T>
-		T& SetName(const std::string& name, T& var)
+		inline T& SetName(const std::string& name, T& var)
 		{
 			var.src->name = name;
 			return var;
@@ -353,7 +353,7 @@ namespace sb
 	namespace detail
 	{
 		template<typename T1, typename T2>
-		T1& GenerateSwizzle(T2* this_, const char* m)
+		inline T1& GenerateSwizzle(T2* this_, const char* m)
 		{
 			T1* result = new T1();
 			result->src->optype = detail::node::memberAccess;

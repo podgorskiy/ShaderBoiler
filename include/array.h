@@ -23,24 +23,24 @@ namespace sb
 	namespace detail
 	{
 		template<typename T>
-		void PropagatePointerToParent(T& var, detail::nodePtr* ptr)
+		inline void PropagatePointerToParent(T& var, detail::nodePtr* ptr)
 		{
 		}
 
 		// Needed to propagate shell pointer through multidimentional arrays.
 		template<typename T, int S>
-		void PropagatePointerToParent(array<T, S>& var, detail::nodePtr* ptr)
+		inline void PropagatePointerToParent(array<T, S>& var, detail::nodePtr* ptr)
 		{
 			var.ptrToParentSrc = ptr;
 		}
 
 		template<typename T>
-		void PushArraySize(const T*, std::vector<int>& sizes)
+		inline void PushArraySize(const T*, std::vector<int>& sizes)
 		{
 		}
 
 		template<typename T, int S>
-		void PushArraySize(const array<T, S>*, std::vector<int>& sizes)
+		inline void PushArraySize(const array<T, S>*, std::vector<int>& sizes)
 		{
 			sizes.push_back(S);
 			PushArraySize((T*)(nullptr), sizes);
