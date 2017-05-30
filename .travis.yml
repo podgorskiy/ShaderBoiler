@@ -9,8 +9,8 @@ matrix:
 addons:
   apt:
     packages:
-    - gcc-5.1
-    - g++-5.1
+    - gcc-4.8
+    - g++-4.8
     - clang
 
 script:
