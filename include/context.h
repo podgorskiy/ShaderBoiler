@@ -111,7 +111,7 @@ namespace sb
 		void Register(T& x)
 		{
 			targetList.push_back(x.src);
-			x.ptrToSrcPtr = &targetList.back();
+			x.ptrToSrcPtr.push_back(&targetList.back());
 		}
 
 		class IndentGuard
@@ -360,6 +360,14 @@ namespace sb
 			return n->GetId();
 		}
 
+		if (node::assign == n->optype &&
+			node::uninitialised == n->childs[0]->optype &&
+			n->childs[1]->Initialised() &&
+			!parentOpModifies)
+		{
+			return Accept(n->childs[1], parentOp);
+		}
+
 		// Assign chain contraction, while preserving assigned name.
 		if (node::assign == n->optype && 
 			node::uninitialised == n->childs[0]->optype &&
@@ -502,6 +510,11 @@ namespace sb
 		}
 
 		if (n->pointersTo > 1)
+		{
+			purge = true;
+		}
+
+		if (parentOpModifies && (node::constliteral_bit & n->optype) != 0)
 		{
 			purge = true;
 		}

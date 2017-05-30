@@ -39,14 +39,14 @@ namespace sb
 
 			this_.src = result.src;
 
-			if (this_.ptrToSrcPtr)
+			for (std::vector<nodePtr*>::iterator it = this_.ptrToSrcPtr.begin(); it != this_.ptrToSrcPtr.end(); ++it)
 			{
 				detail::nodePtr junction(new detail::node());
 				junction->optype = detail::node::dependency;
 				junction->childs.push_back(this_.src);
-				junction->childs.push_back(*this_.ptrToSrcPtr);
+				junction->childs.push_back(*(*it));
 
-				*this_.ptrToSrcPtr = junction;
+				*(*it) = junction;
 			}
 
 			return this_;
@@ -371,7 +371,13 @@ namespace sb
 				junction->childs.push_back(this_->originalsrc);
 				result->src->childs.push_back(junction);
 			}
-			result->ptrToSrcPtr = &(this_->src);
+			result->ptrToSrcPtr.push_back(&(this_->src));
+
+			for (std::vector<detail::nodePtr*>::iterator it = this_->ptrToSrcPtr.begin(); it != this_->ptrToSrcPtr.end(); ++it)
+			{
+				result->ptrToSrcPtr.push_back(*it);
+			}
+
 			this_->garbageVars.push_back(varPtr(result));
 			return *result;
 		}

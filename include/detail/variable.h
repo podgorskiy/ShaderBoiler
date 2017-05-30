@@ -31,7 +31,7 @@ namespace sb
 		class variable
 		{
 		public:
-			variable() : src(nodePtr(new node())), ptrToSrcPtr(nullptr)
+			variable() : src(nodePtr(new node()))
 			{}
 
 			// Pointer to a node in compute graph
@@ -40,9 +40,10 @@ namespace sb
 			// Pointer to a node in compute graph, which is not overwritten by references
 			nodePtr originalsrc;
 
-			// This pointer is not null only for reference variables (output variable, return of subscript operator on array, etc.). 
-			// It is a pointer to the smartpointger to the node in compute graph, which is used to replace the pointer to the node if the reference to the variable was assigned to. 
-			nodePtr* ptrToSrcPtr;
+			// This container of pointers is not empty only for reference variables (output variable, return of subscript operator on array, etc.). 
+			// It is a pointer to the smartpointger to the node in compute graph, which is used to replace the pointer to the node if the reference to the variable was assigned to.
+			// Can contain more than one pointer in can of array which is also output variable.
+			std::vector<nodePtr*> ptrToSrcPtr;
 		};
 
 		typedef std::shared_ptr<variable> varPtr;

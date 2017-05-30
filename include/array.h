@@ -51,17 +51,19 @@ namespace sb
 	class array : public detail::typed_variable<static_cast<detail::node::DataType>(T::type), static_cast<detail::node::DataSize>(T::sizeM), static_cast<detail::node::DataSize>(T::sizeN)>
 	{
 		friend void detail::PropagatePointerToParent(array<T, S>& var, detail::nodePtr* ptr);
+	public:
 		using detail::variable::src;
 		using detail::variable::originalsrc;
-	public:
+
 		array(): ptrToParentSrc(&src)
 		{
 			src->optype = detail::node::array_declaration;
 			src->arraySize.push_back(S);
 			PushArraySize((T*)(nullptr), src->arraySize);
 		}
-		array(const std::string name) : name(name), ptrToParentSrc(&src)
+		array(const std::string name) : ptrToParentSrc(&src)
 		{
+			src->name = name;
 			src->optype = detail::node::array_declaration;
 			src->arraySize.push_back(S);
 			PushArraySize((T*)(nullptr), src->arraySize);
@@ -96,7 +98,12 @@ namespace sb
 
 			result->src->childs.push_back(i.src);
 			
-			result->ptrToSrcPtr = ptrToParentSrc;
+			result->ptrToSrcPtr.push_back(ptrToParentSrc);
+
+			for (std::vector<detail::nodePtr*>::iterator it = ptrToSrcPtr.begin(); it != ptrToSrcPtr.end(); ++it)
+			{
+				result->ptrToSrcPtr.push_back(*it);
+			}
 
 			this->garbageVars.push_back(detail::varPtr(result));
 			return *result;
@@ -117,6 +124,5 @@ namespace sb
 
 	private:
 		detail::nodePtr* ptrToParentSrc;
-		std::string name;
 	};
 }
