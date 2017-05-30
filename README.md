@@ -1,5 +1,7 @@
 # ShaderBoiler
 
+[![Build Status](https://travis-ci.org/podgorskiy/ShaderBoiler.svg?branch=master)](https://travis-ci.org/podgorskiy/ShaderBoiler)
+
 **ShaderBoiler** is a C++, header only library for generating GLSL code out of C++ constructs. 
 
 Have you ever seen code like this in OpenGL related applications?

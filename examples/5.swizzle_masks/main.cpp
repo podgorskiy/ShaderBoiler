@@ -5,8 +5,6 @@ int main()
 {
 	using namespace sb;
 
-	constexpr int lightCount = 4;
-
 	context ctx;
 	vec4 input = ctx.uniform<vec4>("input");
 	vec4& color = ctx.out<vec4>("color");

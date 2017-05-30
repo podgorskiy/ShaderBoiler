@@ -100,7 +100,7 @@ namespace sb
 			
 			result->ptrToSrcPtr.push_back(ptrToParentSrc);
 
-			for (std::vector<detail::nodePtr*>::iterator it = ptrToSrcPtr.begin(); it != ptrToSrcPtr.end(); ++it)
+			for (std::vector<detail::nodePtr*>::iterator it = this->ptrToSrcPtr.begin(); it != this->ptrToSrcPtr.end(); ++it)
 			{
 				result->ptrToSrcPtr.push_back(*it);
 			}
