@@ -1,0 +1,19 @@
+language: cpp
+matrix:
+  include:
+    - compiler: gcc
+      os: linux
+    - compiler: clang
+      os: osx
+
+script:
+  - mkdir build && cd build
+  - cmake ..
+  - make
+
+branches:
+  only:
+    - master
+
+notifications:
+  email: false
