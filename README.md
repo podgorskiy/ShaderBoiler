@@ -98,11 +98,11 @@ How does it work? The library provides a set of datatypes which are similar to o
 
 This is an early alpha version of the library, and it has a lot of limitations (which will be solved soon hopefully), such as:
 
-- No matrixes
-- No user defined functions
-- No interfaces blocks
-- No conditionals
-- No loop controls
+- No matrixes (should be fixed soon)
+- No user defined functions. All functions get inlined 
+- No interfaces blocks.
+- No conditionals.
+- No loop controls. All loops will be unrolled.
 
 ## Perspectives
 
@@ -198,28 +198,28 @@ To create input/output variables use the following methods of the context:
 
 ```cpp
 template<typename T>
-T context::uniform(const std::string& name)
+T context::uniform(const std::string& name);
 
 template<typename T>
-T context::in(const std::string& name)
+T context::in(const std::string& name);
 
 template<typename T>
-T& context::out(const std::string& name)
+T& context::out(const std::string& name);
 
 template<typename T>
-T& context::varying(const std::string& name)
+T& context::varying(const std::string& name);
 
 template<typename T>
-T context::attribute(const std::string& name)
+T context::attribute(const std::string& name);
 
 template<typename T>
-T& context::buffer(const std::string& name)
+T& context::buffer(const std::string& name);
 
 template<typename T>
-T& context::shared(const std::string& name)
+T& context::shared(const std::string& name);
 
 template<typename T>
-T& context::shared(const std::string& name)
+T& context::shared(const std::string& name);
 ```
 
 Where *typename T* is one of the following supported types (or arrays of the following types):
@@ -349,3 +349,272 @@ void main(void)
 ```
 
 Note, that assignment *vec4(0.0)* to the *color* overrides previous manipulations.
+
+### Assigning names to variables.
+
+By default, all intermediate variables are assigned auto-generated names starting with prefix 'sb\_'. It is possible to force using a custom name for a variable. All variables have method *SetName(const std::string& name)* which returns a reference to itself. Thus, the following construct is possible:
+
+```cpp
+GLSL_type <variable> = <expression>.SetName("<some name>");
+```
+
+For example, consider the following code:
+
+```cpp
+context ctx;
+vec3 LightPosition = ctx.uniform<vec3>("LightPosition");
+vec3 position = ctx.in<vec3>("position");
+	
+Float distance = length(LightPosition - position);
+
+ctx.out<vec4>("color") = vec4(distance);
+
+std::cout << ctx.genShader();
+```
+
+The output will be:
+
+```GLSL
+uniform vec3 LightPosition;
+
+in vec3 position;
+
+out vec4 color;
+
+void main(void)
+{
+        color = vec4(length(LightPosition - position));
+}
+```
+
+But, if we set name for *distance* variable:
+
+```cpp
+context ctx;
+vec3 LightPosition = ctx.uniform<vec3>("LightPosition");
+vec3 position = ctx.in<vec3>("position");
+	
+Float distance = length(LightPosition - position).SetName("distance");
+
+ctx.out<vec4>("color") = vec4(distance);
+
+std::cout << ctx.genShader();
+```
+
+Then the output will be:
+
+```GLSL
+uniform vec3 LightPosition;
+
+in vec3 position;
+
+out vec4 color;
+
+void main(void)
+{
+        float distance = length(LightPosition - position);
+        color = vec4(distance);
+}
+```
+
+Note, that variable, which is bounded to a name is not contracted.
+
+### Arrays.
+
+Defining arrays differs from GLSL syntax. You still can use C style arrays, but the result will be array of variables.
+
+For example, the code:
+
+```cpp
+context ctx;
+
+vec4 m[3];
+m[0] = vec4(1.0);
+m[1] = vec4(2.0);
+m[2] = vec4(3.0);
+
+ctx.out<vec4>("color") = m[0] + m[2];
+std::cout << ctx.genShader();
+```
+
+Will produce the following output:
+
+```GLSL
+out vec4 color;
+
+void main(void)
+{
+        color = vec4(1.000000, 1.000000, 1.000000, 1.000000) + vec4(3.000000, 3.000000, 3.000000, 3.000000);
+}
+```
+
+The reason is that *vec4 m[3]* is an array of variables, not a variable which is array.
+
+To create an array, use a template *array*:
+
+```cpp
+template<typename T, int S>
+class array;
+```
+
+Where *T* - type of content of the array, S - size of the array. For example, let's rewrite previous code:
+
+```cpp
+context ctx;
+
+array<vec4, 3> m;
+m[0] = vec4(1.0);
+m[1] = vec4(2.0);
+m[2] = vec4(3.0);
+
+ctx.out<vec4>("color") = m[0] + m[2];
+std::cout << ctx.genShader();
+```
+
+Now, the output will be:
+
+```GLSL
+out vec4 color;
+
+void main(void)
+{
+        vec4 sb_a[3];
+        sb_a[0] = vec4(1.000000, 1.000000, 1.000000, 1.000000);
+        sb_a[1] = vec4(2.000000, 2.000000, 2.000000, 2.000000);
+        sb_a[2] = vec4(3.000000, 3.000000, 3.000000, 3.000000);
+        color = sb_a[0] + sb_a[2];
+}
+```
+
+The same way, you can create arrays of arrays:
+
+```GLSL
+context ctx;
+
+array<array<array<vec4, 3>, 4>, 5> m;
+m[0][1][2] = vec4(1.0);
+m[1][3][1] = vec4(2.0);
+m[2][5][0] = vec4(3.0);
+
+ctx.out<vec4>("color") = m[1][3][1] + m[2][5][0];
+std::cout << ctx.genShader();
+```
+
+Which produces:
+
+```GLSL
+out vec4 color;
+
+void main(void)
+{
+        vec4 sb_a[5][4][3];
+        sb_a[0][1][2] = vec4(1.000000, 1.000000, 1.000000, 1.000000);
+        sb_a[1][3][1] = vec4(2.000000, 2.000000, 2.000000, 2.000000);
+        sb_a[2][5][0] = vec4(3.000000, 3.000000, 3.000000, 3.000000);
+        color = sb_a[1][3][1] + sb_a[2][5][0];
+}
+```
+
+Also, arrays can be input and output variables:
+
+```cpp
+context ctx;
+array<array<array<vec4, 3>, 4>, 5> inArray = ctx.in<array<array<array<vec4, 3>, 4>, 5> >("inArray");
+array<vec4, 2>& outArray = ctx.out<array<vec4, 2> >("outArray");
+
+outArray[0] = inArray[1][3][1] + inArray[2][5][0];
+outArray[1] = inArray[2][2][1] + inArray[1][2][0];
+std::cout << ctx.genShader();
+```
+
+```GLSL
+in vec4 inArray[5][4][3];
+
+out vec4 outArray[2];
+
+void main(void)
+{
+        outArray[0] = inArray[1][3][1] + inArray[2][5][0];
+        outArray[1] = inArray[2][2][1] + inArray[1][2][0];
+}
+```
+
+### Loops.
+
+Currently, there is no support of GLSL runtime loops. All C++ loops will be generation-time loops, which will be unrolled.
+
+For example:
+
+```cpp
+context ctx;
+constexpr int count = 5;
+array<vec4, count> m = ctx.in<array<vec4, count> >("inArray");
+	
+vec4 color = vec4(0.0);
+
+for (int i = 0; i < count; ++i)
+{
+	color += m[i];
+}
+
+ctx.out<vec4>("color") = color;
+std::cout << ctx.genShader();
+```
+
+Will produce:
+
+```GLSL
+in vec4 inArray[5];
+
+out vec4 color;
+
+void main(void)
+{
+        vec4 sb_a = vec4(0.0000000, 0.0000000, 0.0000000, 0.0000000);
+        sb_a += inArray[0];
+        sb_a += inArray[1];
+        sb_a += inArray[2];
+        sb_a += inArray[3];
+        sb_a += inArray[4];
+        color = sb_a;
+}
+```
+
+### Swizzle masks.
+
+All swizzle masks are supported for all types. They are implemented as member functions, so instead of *\<var\>.xyz* you will need to write *\<var\>.xyz()*. For example:
+
+```cpp
+context ctx;
+vec4 input = ctx.uniform<vec4>("input");
+vec4& color = ctx.out<vec4>("color");
+
+vec3 xyz = input.xyz();
+xyz *= input.w();
+xyz.x() = input.r();
+vec4 other = xyz.zyzx();
+other = other.abgr();
+color = other.spqt().tqpt();
+color.x() = 1.0;
+
+std::cout << ctx.genShader();
+```
+
+Will produce:
+
+```GLSL
+uniform vec4 input;
+
+out vec4 color;
+
+void main(void)
+{
+        vec3 sb_b = input.xyz;
+        sb_b *= input.w;
+        sb_b.x = input.r;
+        vec4 sb_a = sb_b.zyzx;
+        sb_a = sb_a.abgr;
+        color = sb_a.spqt.tqpt;
+        color.x = 1.000000;
+}
+```
