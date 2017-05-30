@@ -72,13 +72,14 @@ namespace sb
 				src->optype = t;
 			}
 
-		protected:
 			enum
 			{
 				type = T,
 				sizeM = S,
 				sizeN = S2
 			};
+
+		protected:
 
 			void Init()
 			{
