@@ -50,7 +50,8 @@ namespace sb
 	template<typename T, int S>
 	class array : public detail::typed_variable<static_cast<detail::node::DataType>(T::type), static_cast<detail::node::DataSize>(T::sizeM), static_cast<detail::node::DataSize>(T::sizeN)>
 	{
-		friend void detail::PropagatePointerToParent(array<T, S>& var, detail::nodePtr* ptr);
+		template<typename TPropagate, int SPropagate> friend void detail::PropagatePointerToParent(array<TPropagate, SPropagate>& var, detail::nodePtr* ptr);
+		template<typename TPropagate> friend void detail::PropagatePointerToParent(TPropagate& var, detail::nodePtr* ptr);
 	public:
 		using detail::variable::src;
 		using detail::variable::originalsrc;
